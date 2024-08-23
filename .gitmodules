@@ -1,0 +1,6 @@
+[submodule "externals/owl"]
+	path = externals/owl
+	url = https://github.com/owl-project/owl
+[submodule "externals/stb"]
+	path = externals/stb
+	url = https://github.com/nothings/stb

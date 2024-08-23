@@ -1,0 +1,110 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "externals/owl/samples/interactive/int11-rotatingBoxes/CMakeFiles/int11-rotatingBoxes-ptx.dir/./int11-rotatingBoxes-ptx.c.obj"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"embed_ptx",
+			"target_sources"
+		],
+		"files" : 
+		[
+			"externals/owl/owl/cmake/embed_ptx.cmake",
+			"externals/owl/samples/interactive/int11-rotatingBoxes/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 17,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 85,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 86,
+				"parent" : 1
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /Ob0 /Od /RTC1 -MDd -Zi"
+				}
+			],
+			"language" : "C",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"id" : "int11-rotatingBoxes-ptx_ptx::@c72ff3436066a6662d3c"
+		}
+	],
+	"id" : "int11-rotatingBoxes-ptx::@c72ff3436066a6662d3c",
+	"name" : "int11-rotatingBoxes-ptx",
+	"paths" : 
+	{
+		"build" : "externals/owl/samples/interactive/int11-rotatingBoxes",
+		"source" : "externals/owl/samples/interactive/int11-rotatingBoxes"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 3,
+			"compileGroupIndex" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/externals/owl/samples/interactive/int11-rotatingBoxes/int11-rotatingBoxes-ptx.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/externals/owl/samples/interactive/int11-rotatingBoxes/int11-rotatingBoxes-ptx.c.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "OBJECT_LIBRARY"
+}

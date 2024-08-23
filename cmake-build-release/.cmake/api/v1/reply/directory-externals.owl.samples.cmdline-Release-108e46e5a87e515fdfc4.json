@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "externals/owl/samples/cmdline",
+		"source" : "externals/owl/samples/cmdline"
+	}
+}

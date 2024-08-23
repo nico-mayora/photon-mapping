@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "externals/owl/samples/interactive/int19-instancePrograms",
+		"source" : "externals/owl/samples/interactive/int19-instancePrograms"
+	}
+}

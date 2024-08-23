@@ -1,0 +1,1259 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1
+					],
+					"jsonFile" : "directory-.-Release-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						71,
+						72,
+						73
+					]
+				},
+				{
+					"build" : "externals/owl",
+					"childIndexes" : 
+					[
+						2,
+						3,
+						5
+					],
+					"jsonFile" : "directory-externals.owl-Release-cf3a687ce3e9e3cf1ea1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "externals/owl"
+				},
+				{
+					"build" : "externals/owl/owl",
+					"jsonFile" : "directory-externals.owl.owl-Release-ac7c7593ff6e532e60ac.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "externals/owl/owl",
+					"targetIndexes" : 
+					[
+						42
+					]
+				},
+				{
+					"build" : "externals/owl/3rdParty",
+					"childIndexes" : 
+					[
+						4
+					],
+					"jsonFile" : "directory-externals.owl.3rdParty-Release-0141a6276c75d70b4a6e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "externals/owl/3rdParty"
+				},
+				{
+					"build" : "externals/owl/3rdParty/stb_image",
+					"jsonFile" : "directory-externals.owl.3rdParty.stb_image-Release-f20d647ba430d0b053f1.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 1,
+					"source" : "externals/owl/3rdParty/stb_image"
+				},
+				{
+					"build" : "externals/owl/samples",
+					"childIndexes" : 
+					[
+						6,
+						8,
+						18,
+						32
+					],
+					"jsonFile" : "directory-externals.owl.samples-Release-c5e4b753fef0b78ae0e4.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples"
+				},
+				{
+					"build" : "externals/owl/samples/common",
+					"childIndexes" : 
+					[
+						7
+					],
+					"jsonFile" : "directory-externals.owl.samples.common-Release-e37a2ef47dcf8cc68bc8.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/common"
+				},
+				{
+					"build" : "externals/owl/samples/common/owlViewer",
+					"jsonFile" : "directory-externals.owl.samples.common.owlViewer-Release-05edf2f9b82d1f94518e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 6,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/common/owlViewer",
+					"targetIndexes" : 
+					[
+						43
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline",
+					"childIndexes" : 
+					[
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17
+					],
+					"jsonFile" : "directory-externals.owl.samples.cmdline-Release-108e46e5a87e515fdfc4.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline"
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s00-rayGenOnly",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s00-rayGenOnly-Release-3433c25e8c7cafa22f10.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s00-rayGenOnly",
+					"targetIndexes" : 
+					[
+						44,
+						45,
+						46
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s01-simpleTriangles",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s01-simpleTriangles-Release-83bf5fd74a8de776cf6a.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s01-simpleTriangles",
+					"targetIndexes" : 
+					[
+						47,
+						48,
+						49
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s05-rtow",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s05-rtow-Release-ba796cb50a8a9df452bb.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s05-rtow",
+					"targetIndexes" : 
+					[
+						50,
+						51,
+						52
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s06-rtow-mixedGeometries",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s06-rtow-mixedGeometries-Release-8b3b6eee660c4ec492e5.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s06-rtow-mixedGeometries",
+					"targetIndexes" : 
+					[
+						53,
+						54,
+						55
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s07-rtow-multiGPU",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s07-rtow-multiGPU-Release-87a9dc0548e1f735a42f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s07-rtow-multiGPU",
+					"targetIndexes" : 
+					[
+						56,
+						57,
+						58
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s08-sierpinski",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s08-sierpinski-Release-7e3e39a257267e7985d7.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s08-sierpinski",
+					"targetIndexes" : 
+					[
+						59,
+						60,
+						61
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s09-motionBlurSimpleTriangles",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s09-motionBlurSimpleTriangles-Release-f3cb9e30e96da83863e6.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s09-motionBlurSimpleTriangles",
+					"targetIndexes" : 
+					[
+						62,
+						63,
+						64
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s10-launch3D",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s10-launch3D-Release-10dcff479d1153855da2.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s10-launch3D",
+					"targetIndexes" : 
+					[
+						65,
+						66,
+						67
+					]
+				},
+				{
+					"build" : "externals/owl/samples/cmdline/s11-textures",
+					"jsonFile" : "directory-externals.owl.samples.cmdline.s11-textures-Release-ebabeb5b72b137dfa71b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 8,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/cmdline/s11-textures",
+					"targetIndexes" : 
+					[
+						68,
+						69,
+						70
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive",
+					"childIndexes" : 
+					[
+						19,
+						20,
+						21,
+						22,
+						23,
+						24,
+						25,
+						26,
+						27,
+						28,
+						29,
+						30,
+						31
+					],
+					"jsonFile" : "directory-externals.owl.samples.interactive-Release-d87b4a07e7caa7964d0e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive"
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int01-simpleTriangles",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int01-simpleTriangles-Release-d43e275b7da0cae2112e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int01-simpleTriangles",
+					"targetIndexes" : 
+					[
+						3,
+						4,
+						5
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int06-mixedGeometries",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int06-mixedGeometries-Release-7fcca3a516994c60a294.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int06-mixedGeometries",
+					"targetIndexes" : 
+					[
+						6,
+						7,
+						8
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int07-whitted",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int07-whitted-Release-48551209962e4ddc347d.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int07-whitted",
+					"targetIndexes" : 
+					[
+						9,
+						10,
+						11
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int10-texturedTriangles",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int10-texturedTriangles-Release-58eea648cab30647aa66.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int10-texturedTriangles",
+					"targetIndexes" : 
+					[
+						12,
+						13,
+						14
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int11-rotatingBoxes",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int11-rotatingBoxes-Release-5c0c12e2a19f0b018bcc.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int11-rotatingBoxes",
+					"targetIndexes" : 
+					[
+						15,
+						16,
+						17
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int12-switchingTextureSets",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int12-switchingTextureSets-Release-d549c4e75c9fba8c0398.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int12-switchingTextureSets",
+					"targetIndexes" : 
+					[
+						18,
+						19,
+						20
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int13-motionBlurInstances",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int13-motionBlurInstances-Release-8d18517c6a7aa5dde2d4.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int13-motionBlurInstances",
+					"targetIndexes" : 
+					[
+						21,
+						22,
+						23
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int14-motionBlurAabbs",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int14-motionBlurAabbs-Release-1ad51a4c1d356896e4ce.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int14-motionBlurAabbs",
+					"targetIndexes" : 
+					[
+						24,
+						25,
+						26
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int15-cookBilliardScene",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int15-cookBilliardScene-Release-6c515f8f3cdc34e7b0fe.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int15-cookBilliardScene",
+					"targetIndexes" : 
+					[
+						27,
+						28,
+						29
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int16-curves",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int16-curves-Release-cbe3755a473df75ef704.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int16-curves",
+					"targetIndexes" : 
+					[
+						30,
+						31,
+						32
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int17-curveMaterials",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int17-curveMaterials-Release-af0ba0c24e6b3e96984c.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int17-curveMaterials",
+					"targetIndexes" : 
+					[
+						33,
+						34,
+						35
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int18-spherePrimitives",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int18-spherePrimitives-Release-ad9c926fd2e58be8309f.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int18-spherePrimitives",
+					"targetIndexes" : 
+					[
+						36,
+						37,
+						38
+					]
+				},
+				{
+					"build" : "externals/owl/samples/interactive/int19-instancePrograms",
+					"jsonFile" : "directory-externals.owl.samples.interactive.int19-instancePrograms-Release-d69a89f4a5cb20887f40.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 18,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/interactive/int19-instancePrograms",
+					"targetIndexes" : 
+					[
+						39,
+						40,
+						41
+					]
+				},
+				{
+					"build" : "externals/owl/samples/advanced",
+					"childIndexes" : 
+					[
+						33
+					],
+					"jsonFile" : "directory-externals.owl.samples.advanced-Release-6d41afa4ef8ea97fd323.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/advanced"
+				},
+				{
+					"build" : "externals/owl/samples/advanced/optix7course",
+					"jsonFile" : "directory-externals.owl.samples.advanced.optix7course-Release-d54f0f50010f78ef35d9.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.12"
+					},
+					"parentIndex" : 32,
+					"projectIndex" : 1,
+					"source" : "externals/owl/samples/advanced/optix7course",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "testing",
+					"targetIndexes" : 
+					[
+						71,
+						72,
+						73
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						24,
+						25,
+						26,
+						27,
+						28,
+						29,
+						30,
+						31,
+						32,
+						33
+					],
+					"name" : "Optix-OWL",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15,
+						16,
+						17,
+						18,
+						19,
+						20,
+						21,
+						22,
+						23,
+						24,
+						25,
+						26,
+						27,
+						28,
+						29,
+						30,
+						31,
+						32,
+						33,
+						34,
+						35,
+						36,
+						37,
+						38,
+						39,
+						40,
+						41,
+						42,
+						43,
+						44,
+						45,
+						46,
+						47,
+						48,
+						49,
+						50,
+						51,
+						52,
+						53,
+						54,
+						55,
+						56,
+						57,
+						58,
+						59,
+						60,
+						61,
+						62,
+						63,
+						64,
+						65,
+						66,
+						67,
+						68,
+						69,
+						70
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 33,
+					"id" : "adv_optix7course::@0d05ca8ae6fe32bb8a88",
+					"jsonFile" : "target-adv_optix7course-Release-98313281334e37b20838.json",
+					"name" : "adv_optix7course",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 33,
+					"id" : "adv_optix7course-ptx::@0d05ca8ae6fe32bb8a88",
+					"jsonFile" : "target-adv_optix7course-ptx-Release-2adf6263749335241e3f.json",
+					"name" : "adv_optix7course-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 33,
+					"id" : "adv_optix7course-ptx_ptx::@0d05ca8ae6fe32bb8a88",
+					"jsonFile" : "target-adv_optix7course-ptx_ptx-Release-1cecef2268b309bd88e5.json",
+					"name" : "adv_optix7course-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 19,
+					"id" : "int01-simpleTriangles::@533f8f6f19adb0a7a30a",
+					"jsonFile" : "target-int01-simpleTriangles-Release-1f73a1ac1172ab670d0f.json",
+					"name" : "int01-simpleTriangles",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 19,
+					"id" : "int01-simpleTriangles-ptx::@533f8f6f19adb0a7a30a",
+					"jsonFile" : "target-int01-simpleTriangles-ptx-Release-5b994882e39a286574b4.json",
+					"name" : "int01-simpleTriangles-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 19,
+					"id" : "int01-simpleTriangles-ptx_ptx::@533f8f6f19adb0a7a30a",
+					"jsonFile" : "target-int01-simpleTriangles-ptx_ptx-Release-04b32856470ac5402a52.json",
+					"name" : "int01-simpleTriangles-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 20,
+					"id" : "int06-rtow-mixedGeometries::@c3a17e555255cf9ba1e8",
+					"jsonFile" : "target-int06-rtow-mixedGeometries-Release-7d0da52ea4cd590bd95a.json",
+					"name" : "int06-rtow-mixedGeometries",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 20,
+					"id" : "int06-rtow-mixedGeometries-ptx::@c3a17e555255cf9ba1e8",
+					"jsonFile" : "target-int06-rtow-mixedGeometries-ptx-Release-60fae5d578a5cdf8e68a.json",
+					"name" : "int06-rtow-mixedGeometries-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 20,
+					"id" : "int06-rtow-mixedGeometries-ptx_ptx::@c3a17e555255cf9ba1e8",
+					"jsonFile" : "target-int06-rtow-mixedGeometries-ptx_ptx-Release-1ffc70b7566eee5d7356.json",
+					"name" : "int06-rtow-mixedGeometries-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 21,
+					"id" : "int07-whitted::@40718765d31d97138e36",
+					"jsonFile" : "target-int07-whitted-Release-d37feabac44f41e8a041.json",
+					"name" : "int07-whitted",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 21,
+					"id" : "int07-whitted-ptx::@40718765d31d97138e36",
+					"jsonFile" : "target-int07-whitted-ptx-Release-95a846d70ce2961671a2.json",
+					"name" : "int07-whitted-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 21,
+					"id" : "int07-whitted-ptx_ptx::@40718765d31d97138e36",
+					"jsonFile" : "target-int07-whitted-ptx_ptx-Release-90c35694975bea115973.json",
+					"name" : "int07-whitted-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 22,
+					"id" : "int10-texturedTriangles::@7ad1ef6aa1ac662ecd07",
+					"jsonFile" : "target-int10-texturedTriangles-Release-d926ed76a32bb4fd20e3.json",
+					"name" : "int10-texturedTriangles",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 22,
+					"id" : "int10-texturedTriangles-ptx::@7ad1ef6aa1ac662ecd07",
+					"jsonFile" : "target-int10-texturedTriangles-ptx-Release-8dafede1f960df6ddfcb.json",
+					"name" : "int10-texturedTriangles-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 22,
+					"id" : "int10-texturedTriangles-ptx_ptx::@7ad1ef6aa1ac662ecd07",
+					"jsonFile" : "target-int10-texturedTriangles-ptx_ptx-Release-166bf8207b5b2c52d078.json",
+					"name" : "int10-texturedTriangles-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 23,
+					"id" : "int11-rotatingBoxes::@c72ff3436066a6662d3c",
+					"jsonFile" : "target-int11-rotatingBoxes-Release-039288f0cf509449c73a.json",
+					"name" : "int11-rotatingBoxes",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 23,
+					"id" : "int11-rotatingBoxes-ptx::@c72ff3436066a6662d3c",
+					"jsonFile" : "target-int11-rotatingBoxes-ptx-Release-9226de3ac4b248d26ab9.json",
+					"name" : "int11-rotatingBoxes-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 23,
+					"id" : "int11-rotatingBoxes-ptx_ptx::@c72ff3436066a6662d3c",
+					"jsonFile" : "target-int11-rotatingBoxes-ptx_ptx-Release-bbb7574f21c41d98f727.json",
+					"name" : "int11-rotatingBoxes-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 24,
+					"id" : "int12-switchingTextureSets::@2c23cb41e7fffcf9f2bf",
+					"jsonFile" : "target-int12-switchingTextureSets-Release-49890982c6b6eb75b88e.json",
+					"name" : "int12-switchingTextureSets",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 24,
+					"id" : "int12-switchingTextureSets-ptx::@2c23cb41e7fffcf9f2bf",
+					"jsonFile" : "target-int12-switchingTextureSets-ptx-Release-0fd5c1e8464e4c92d4f5.json",
+					"name" : "int12-switchingTextureSets-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 24,
+					"id" : "int12-switchingTextureSets-ptx_ptx::@2c23cb41e7fffcf9f2bf",
+					"jsonFile" : "target-int12-switchingTextureSets-ptx_ptx-Release-5725c8966af629162815.json",
+					"name" : "int12-switchingTextureSets-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 25,
+					"id" : "int13-motionBlurBoxes::@bdc194c8a1365bb1d29d",
+					"jsonFile" : "target-int13-motionBlurBoxes-Release-827aa84b1d1c9b7b81d2.json",
+					"name" : "int13-motionBlurBoxes",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 25,
+					"id" : "int13-motionBlurBoxes-ptx::@bdc194c8a1365bb1d29d",
+					"jsonFile" : "target-int13-motionBlurBoxes-ptx-Release-6f671f4f4a926ca480ab.json",
+					"name" : "int13-motionBlurBoxes-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 25,
+					"id" : "int13-motionBlurBoxes-ptx_ptx::@bdc194c8a1365bb1d29d",
+					"jsonFile" : "target-int13-motionBlurBoxes-ptx_ptx-Release-2e136aa1ee51e86ec1f8.json",
+					"name" : "int13-motionBlurBoxes-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 26,
+					"id" : "int14-motionBlurAabbs::@22528ddc5ad4778a09b1",
+					"jsonFile" : "target-int14-motionBlurAabbs-Release-3c10c189d443331324f4.json",
+					"name" : "int14-motionBlurAabbs",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 26,
+					"id" : "int14-motionBlurAabbs-ptx::@22528ddc5ad4778a09b1",
+					"jsonFile" : "target-int14-motionBlurAabbs-ptx-Release-72a19c66fb221cd2a254.json",
+					"name" : "int14-motionBlurAabbs-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 26,
+					"id" : "int14-motionBlurAabbs-ptx_ptx::@22528ddc5ad4778a09b1",
+					"jsonFile" : "target-int14-motionBlurAabbs-ptx_ptx-Release-10a1437f5f9efc043217.json",
+					"name" : "int14-motionBlurAabbs-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 27,
+					"id" : "int15-cookBilliardScene::@fa5d1b0352f27398ed92",
+					"jsonFile" : "target-int15-cookBilliardScene-Release-03003f7739f8ae2cb977.json",
+					"name" : "int15-cookBilliardScene",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 27,
+					"id" : "int15-cookBilliardScene-ptx::@fa5d1b0352f27398ed92",
+					"jsonFile" : "target-int15-cookBilliardScene-ptx-Release-9f0435c943c30537a6fe.json",
+					"name" : "int15-cookBilliardScene-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 27,
+					"id" : "int15-cookBilliardScene-ptx_ptx::@fa5d1b0352f27398ed92",
+					"jsonFile" : "target-int15-cookBilliardScene-ptx_ptx-Release-23564060f84caab13e6d.json",
+					"name" : "int15-cookBilliardScene-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 28,
+					"id" : "int16-curves::@29da6317fe4780d54c69",
+					"jsonFile" : "target-int16-curves-Release-fed8f27feddea0168e50.json",
+					"name" : "int16-curves",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 28,
+					"id" : "int16-curves-ptx::@29da6317fe4780d54c69",
+					"jsonFile" : "target-int16-curves-ptx-Release-93b906bc5e5fd672a902.json",
+					"name" : "int16-curves-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 28,
+					"id" : "int16-curves-ptx_ptx::@29da6317fe4780d54c69",
+					"jsonFile" : "target-int16-curves-ptx_ptx-Release-18e2f86252a549d20472.json",
+					"name" : "int16-curves-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 29,
+					"id" : "int17-curveMaterials::@265edbdb832093cd04de",
+					"jsonFile" : "target-int17-curveMaterials-Release-c2b9de14112ff7d7fb1e.json",
+					"name" : "int17-curveMaterials",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 29,
+					"id" : "int17-curveMaterials-ptx::@265edbdb832093cd04de",
+					"jsonFile" : "target-int17-curveMaterials-ptx-Release-d2a4a5c549aaadde024c.json",
+					"name" : "int17-curveMaterials-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 29,
+					"id" : "int17-curveMaterials-ptx_ptx::@265edbdb832093cd04de",
+					"jsonFile" : "target-int17-curveMaterials-ptx_ptx-Release-16a139475579fb36129c.json",
+					"name" : "int17-curveMaterials-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 30,
+					"id" : "int18-spherePrimitives::@1dc83783d9b26e646bd1",
+					"jsonFile" : "target-int18-spherePrimitives-Release-9ad337c360f0c93b7490.json",
+					"name" : "int18-spherePrimitives",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 30,
+					"id" : "int18-spherePrimitives-ptx::@1dc83783d9b26e646bd1",
+					"jsonFile" : "target-int18-spherePrimitives-ptx-Release-05c91cb29306939f1273.json",
+					"name" : "int18-spherePrimitives-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 30,
+					"id" : "int18-spherePrimitives-ptx_ptx::@1dc83783d9b26e646bd1",
+					"jsonFile" : "target-int18-spherePrimitives-ptx_ptx-Release-4b82f1d9c745e54ad06c.json",
+					"name" : "int18-spherePrimitives-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 31,
+					"id" : "int19-instancePrograms::@7067114fa3d72c32e615",
+					"jsonFile" : "target-int19-instancePrograms-Release-c9f0323c28cd1580ea39.json",
+					"name" : "int19-instancePrograms",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 31,
+					"id" : "int19-instancePrograms-ptx::@7067114fa3d72c32e615",
+					"jsonFile" : "target-int19-instancePrograms-ptx-Release-4766cc37f33017aba50c.json",
+					"name" : "int19-instancePrograms-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 31,
+					"id" : "int19-instancePrograms-ptx_ptx::@7067114fa3d72c32e615",
+					"jsonFile" : "target-int19-instancePrograms-ptx_ptx-Release-f2eff2feb7959fe8e404.json",
+					"name" : "int19-instancePrograms-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "owl::@4dc518d27906d2151774",
+					"jsonFile" : "target-owl-Release-d41db49421056e026075.json",
+					"name" : "owl",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "owl_viewer::@581fd643a321a17a1403",
+					"jsonFile" : "target-owl_viewer-Release-5f0abcd16c85a5186d7b.json",
+					"name" : "owl_viewer",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "sample00-rayGenOnly::@0f66785bf16560dc9224",
+					"jsonFile" : "target-sample00-rayGenOnly-Release-66e006b11df1d27debed.json",
+					"name" : "sample00-rayGenOnly",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "sample00-rayGenOnly-ptx::@0f66785bf16560dc9224",
+					"jsonFile" : "target-sample00-rayGenOnly-ptx-Release-28c9f4d9cee361861c24.json",
+					"name" : "sample00-rayGenOnly-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "sample00-rayGenOnly-ptx_ptx::@0f66785bf16560dc9224",
+					"jsonFile" : "target-sample00-rayGenOnly-ptx_ptx-Release-b54c69b4e832ddde02b6.json",
+					"name" : "sample00-rayGenOnly-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "sample01-simpleTriangles::@92eb446aeefe161a5422",
+					"jsonFile" : "target-sample01-simpleTriangles-Release-0eb1c9f2abf24b0c1310.json",
+					"name" : "sample01-simpleTriangles",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "sample01-simpleTriangles-ptx::@92eb446aeefe161a5422",
+					"jsonFile" : "target-sample01-simpleTriangles-ptx-Release-cb8991411e4803f555c1.json",
+					"name" : "sample01-simpleTriangles-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "sample01-simpleTriangles-ptx_ptx::@92eb446aeefe161a5422",
+					"jsonFile" : "target-sample01-simpleTriangles-ptx_ptx-Release-156bccdfe34fedb2bb83.json",
+					"name" : "sample01-simpleTriangles-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "sample05-rtow::@18c2be95632f9e6583cb",
+					"jsonFile" : "target-sample05-rtow-Release-a662fdccbda646511b13.json",
+					"name" : "sample05-rtow",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "sample05-rtow-ptx::@18c2be95632f9e6583cb",
+					"jsonFile" : "target-sample05-rtow-ptx-Release-ea8e67f939877a3ea5e5.json",
+					"name" : "sample05-rtow-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "sample05-rtow-ptx_ptx::@18c2be95632f9e6583cb",
+					"jsonFile" : "target-sample05-rtow-ptx_ptx-Release-0abebe9a32eb82d246da.json",
+					"name" : "sample05-rtow-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "sample06-rtow-mixedGeometries::@27cbd86d9591c43c15fa",
+					"jsonFile" : "target-sample06-rtow-mixedGeometries-Release-35f9b73928d9c9d01d79.json",
+					"name" : "sample06-rtow-mixedGeometries",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "sample06-rtow-mixedGeometries-ptx::@27cbd86d9591c43c15fa",
+					"jsonFile" : "target-sample06-rtow-mixedGeometries-ptx-Release-cdb2fdb92f59ce6c818d.json",
+					"name" : "sample06-rtow-mixedGeometries-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "sample06-rtow-mixedGeometries-ptx_ptx::@27cbd86d9591c43c15fa",
+					"jsonFile" : "target-sample06-rtow-mixedGeometries-ptx_ptx-Release-f510473ed721a278f720.json",
+					"name" : "sample06-rtow-mixedGeometries-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "sample07-rtow-multiGPU::@e3fb7385fd3d5b7d166b",
+					"jsonFile" : "target-sample07-rtow-multiGPU-Release-ba90a4d11a9405e23160.json",
+					"name" : "sample07-rtow-multiGPU",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "sample07-rtow-multiGPU-ptx::@e3fb7385fd3d5b7d166b",
+					"jsonFile" : "target-sample07-rtow-multiGPU-ptx-Release-7c2f5827a298f5cb27d9.json",
+					"name" : "sample07-rtow-multiGPU-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 13,
+					"id" : "sample07-rtow-multiGPU-ptx_ptx::@e3fb7385fd3d5b7d166b",
+					"jsonFile" : "target-sample07-rtow-multiGPU-ptx_ptx-Release-0a6c3c22a66240a8786c.json",
+					"name" : "sample07-rtow-multiGPU-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 14,
+					"id" : "sample08-sierpinski::@aad6c827e7e0c1779801",
+					"jsonFile" : "target-sample08-sierpinski-Release-9c27aaf3139c98d8f5c2.json",
+					"name" : "sample08-sierpinski",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 14,
+					"id" : "sample08-sierpinski-ptx::@aad6c827e7e0c1779801",
+					"jsonFile" : "target-sample08-sierpinski-ptx-Release-7aa28cfe8068f5f7b736.json",
+					"name" : "sample08-sierpinski-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 14,
+					"id" : "sample08-sierpinski-ptx_ptx::@aad6c827e7e0c1779801",
+					"jsonFile" : "target-sample08-sierpinski-ptx_ptx-Release-f3cce26c1c57d1f35fc3.json",
+					"name" : "sample08-sierpinski-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "sample09-motionBlurSimpleTriangles::@56a5973cfeb1102f41c5",
+					"jsonFile" : "target-sample09-motionBlurSimpleTriangles-Release-24c417da99eb8a407034.json",
+					"name" : "sample09-motionBlurSimpleTriangles",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "sample09-motionBlurSimpleTriangles-ptx::@56a5973cfeb1102f41c5",
+					"jsonFile" : "target-sample09-motionBlurSimpleTriangles-ptx-Release-26e54e06aad0f9500f5d.json",
+					"name" : "sample09-motionBlurSimpleTriangles-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 15,
+					"id" : "sample09-motionBlurSimpleTriangles-ptx_ptx::@56a5973cfeb1102f41c5",
+					"jsonFile" : "target-sample09-motionBlurSimpleTriangles-ptx_ptx-Release-2cfdc5954e9e6fd23d5e.json",
+					"name" : "sample09-motionBlurSimpleTriangles-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 16,
+					"id" : "sample10-launch3D::@abc5e474e7b99c9937fb",
+					"jsonFile" : "target-sample10-launch3D-Release-2eb35f82f25116b0d20c.json",
+					"name" : "sample10-launch3D",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 16,
+					"id" : "sample10-launch3D-ptx::@abc5e474e7b99c9937fb",
+					"jsonFile" : "target-sample10-launch3D-ptx-Release-8897e984a988ca65aab4.json",
+					"name" : "sample10-launch3D-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 16,
+					"id" : "sample10-launch3D-ptx_ptx::@abc5e474e7b99c9937fb",
+					"jsonFile" : "target-sample10-launch3D-ptx_ptx-Release-3ec0cc0bdb260f77cf57.json",
+					"name" : "sample10-launch3D-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 17,
+					"id" : "sample11-textures::@e5cde7ba08b5e3b64e2f",
+					"jsonFile" : "target-sample11-textures-Release-3a028f1c1f24b2d1cf4d.json",
+					"name" : "sample11-textures",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 17,
+					"id" : "sample11-textures-ptx::@e5cde7ba08b5e3b64e2f",
+					"jsonFile" : "target-sample11-textures-ptx-Release-3abf9414d07bb625476b.json",
+					"name" : "sample11-textures-ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 17,
+					"id" : "sample11-textures-ptx_ptx::@e5cde7ba08b5e3b64e2f",
+					"jsonFile" : "target-sample11-textures-ptx_ptx-Release-eea0bc9261d8ee53d979.json",
+					"name" : "sample11-textures-ptx_ptx",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "testing::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-testing-Release-6f3ae936eaf34827b808.json",
+					"name" : "testing",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "testing-ptx::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-testing-ptx-Release-e5f8d0183e661bcae28e.json",
+					"name" : "testing-ptx",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "testing-ptx_ptx::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-testing-ptx_ptx-Release-5ee042f6c412ddfae08a.json",
+					"name" : "testing-ptx_ptx",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/Nico/CLionProjects/testing/cmake-build-release",
+		"source" : "C:/Users/Nico/CLionProjects/testing"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

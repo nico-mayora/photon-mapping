@@ -1,0 +1,110 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "externals/owl/samples/advanced/optix7course/CMakeFiles/adv_optix7course-ptx.dir/./adv_optix7course-ptx.c.obj"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"embed_ptx",
+			"target_sources"
+		],
+		"files" : 
+		[
+			"externals/owl/owl/cmake/embed_ptx.cmake",
+			"externals/owl/samples/advanced/optix7course/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 17,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 85,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 86,
+				"parent" : 1
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /Ob0 /Od /RTC1 -MDd -Zi"
+				}
+			],
+			"language" : "C",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"id" : "adv_optix7course-ptx_ptx::@0d05ca8ae6fe32bb8a88"
+		}
+	],
+	"id" : "adv_optix7course-ptx::@0d05ca8ae6fe32bb8a88",
+	"name" : "adv_optix7course-ptx",
+	"paths" : 
+	{
+		"build" : "externals/owl/samples/advanced/optix7course",
+		"source" : "externals/owl/samples/advanced/optix7course"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 3,
+			"compileGroupIndex" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/externals/owl/samples/advanced/optix7course/adv_optix7course-ptx.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/externals/owl/samples/advanced/optix7course/adv_optix7course-ptx.c.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
+	"type" : "OBJECT_LIBRARY"
+}

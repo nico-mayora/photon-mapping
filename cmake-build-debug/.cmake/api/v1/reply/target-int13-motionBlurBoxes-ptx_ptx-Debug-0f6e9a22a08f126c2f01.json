@@ -1,0 +1,151 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "externals/owl/samples/interactive/int13-motionBlurInstances/CMakeFiles/int13-motionBlurBoxes-ptx_ptx.dir/./deviceCode.ptx"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"add_library",
+			"embed_ptx",
+			"target_link_libraries",
+			"target_compile_options",
+			"target_sources"
+		],
+		"files" : 
+		[
+			"externals/owl/owl/cmake/embed_ptx.cmake",
+			"externals/owl/samples/interactive/int13-motionBlurInstances/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 17,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 61,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 0,
+				"line" : 63,
+				"parent" : 1
+			},
+			{
+				"command" : 3,
+				"file" : 0,
+				"line" : 66,
+				"parent" : 1
+			},
+			{
+				"command" : 4,
+				"file" : 0,
+				"line" : 62,
+				"parent" : 1
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "-D_WINDOWS -Xcompiler=\" /EHsc\" -Xcompiler=\" -Ob0 -Od /RTC1\" -Xcompiler=-MDd -Xcompiler=-Zi"
+				},
+				{
+					"backtrace" : 4,
+					"fragment" : "-lineinfo"
+				}
+			],
+			"defines" : 
+			[
+				{
+					"backtrace" : 3,
+					"define" : "NOMINMAX"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 3,
+					"path" : "C:/Users/Nico/CLionProjects/testing/externals/owl"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "C:/Users/Nico/CLionProjects/testing/externals/owl/owl/include"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "C:/ProgramData/NVIDIA Corporation/OptiX SDK 7.4.0//include"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include"
+				}
+			],
+			"language" : "CUDA",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					2
+				],
+				"standard" : "11"
+			},
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "owl::@4dc518d27906d2151774"
+		}
+	],
+	"id" : "int13-motionBlurBoxes-ptx_ptx::@bdc194c8a1365bb1d29d",
+	"name" : "int13-motionBlurBoxes-ptx_ptx",
+	"paths" : 
+	{
+		"build" : "externals/owl/samples/interactive/int13-motionBlurInstances",
+		"source" : "externals/owl/samples/interactive/int13-motionBlurInstances"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 5,
+			"compileGroupIndex" : 0,
+			"path" : "externals/owl/samples/interactive/int13-motionBlurInstances/deviceCode.cu",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "OBJECT_LIBRARY"
+}

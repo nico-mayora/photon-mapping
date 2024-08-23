@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "externals/owl/samples/cmdline/s01-simpleTriangles",
+		"source" : "externals/owl/samples/cmdline/s01-simpleTriangles"
+	}
+}

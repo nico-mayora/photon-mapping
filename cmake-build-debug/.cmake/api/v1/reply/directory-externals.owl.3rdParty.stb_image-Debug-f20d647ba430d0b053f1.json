@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "externals/owl/3rdParty/stb_image",
+		"source" : "externals/owl/3rdParty/stb_image"
+	}
+}

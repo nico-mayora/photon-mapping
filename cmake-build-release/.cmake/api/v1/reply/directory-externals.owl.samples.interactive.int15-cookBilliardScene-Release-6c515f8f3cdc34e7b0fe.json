@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "externals/owl/samples/interactive/int15-cookBilliardScene",
+		"source" : "externals/owl/samples/interactive/int15-cookBilliardScene"
+	}
+}
