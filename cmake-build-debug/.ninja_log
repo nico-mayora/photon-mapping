@@ -1,0 +1,4 @@
+# ninja log v6
+7	7510	7460836813528865	CMakeFiles/testing.dir/main.cu.obj	863fb51fd12cda2d
+7514	12507	7460836888604895	CMakeFiles/testing.dir/cmake_device_link.obj	af1773531c38e1d6
+12507	13096	7460836938528914	testing.exe	ee32a93039c0283b
