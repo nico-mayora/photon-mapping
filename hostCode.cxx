@@ -213,8 +213,8 @@ int main(int ac, char **av)
 
   LOG("done with launch, writing picture ...");
   // for host pinned mem it doesn't matter which device we query...
-  const uint32_t *fb
-    = (const uint32_t*)owlBufferGetPointer(frameBuffer,0);
+  auto uint32_t *fb
+    = static_cast<const uint32_t*>(owlBufferGetPointer(frameBuffer, 0));
   assert(fb);
   stbi_write_png(outFileName,fbSize.x,fbSize.y,4,
                  fb,fbSize.x*sizeof(uint32_t));
