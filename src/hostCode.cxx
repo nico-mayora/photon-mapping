@@ -20,10 +20,10 @@
 // public owl node-graph API
 #include "owl/owl.h"
 // our device-side data structures
-#include "deviceCode.h"
+#include "../cuda/deviceCode.h"
 // external helper stuff for image output
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "externals/stb/stb_image_write.h"
+#include "../externals/stb/stb_image_write.h"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -213,8 +213,7 @@ int main(int ac, char **av)
 
   LOG("done with launch, writing picture ...");
   // for host pinned mem it doesn't matter which device we query...
-  auto uint32_t *fb
-    = static_cast<const uint32_t*>(owlBufferGetPointer(frameBuffer, 0));
+  auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(frameBuffer, 0));
   assert(fb);
   stbi_write_png(outFileName,fbSize.x,fbSize.y,4,
                  fb,fbSize.x*sizeof(uint32_t));

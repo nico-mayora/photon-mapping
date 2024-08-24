@@ -13,10 +13,10 @@ embed_ptx(
   PTX_LINK_LIBRARIES
     owl::owl
   SOURCES
-    deviceCode.cu
+        cuda/deviceCode.cu
 )
 
-add_executable(photonMapping hostCode.cxx)
+add_executable(photonMapping src/hostCode.cxx)
 
 set(owl_dir ${PROJECT_SOURCE_DIR}/externals/owl)
 add_subdirectory(${owl_dir} EXCLUDE_FROM_ALL)
