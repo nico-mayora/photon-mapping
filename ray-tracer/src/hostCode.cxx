@@ -23,7 +23,7 @@
 #include "../cuda/deviceCode.h"
 // external helper stuff for image output
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../externals/stb/stb_image_write.h"
+#include "../../externals/stb/stb_image_write.h"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -121,7 +121,7 @@ int main(int ac, char **av)
 
   owlGeomSetBuffer(trianglesGeom,"vertex",vertexBuffer);
   owlGeomSetBuffer(trianglesGeom,"index",indexBuffer);
-  owlGeomSet3f(trianglesGeom,"color",owl3f{0,1,0});
+  owlGeomSet3f(trianglesGeom,"color",owl3f{1,0,0});
 
   // ------------------------------------------------------------------
   // the group/accel for that mesh
