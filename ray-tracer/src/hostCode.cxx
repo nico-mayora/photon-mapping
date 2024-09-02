@@ -23,7 +23,9 @@
 #include "../cuda/deviceCode.h"
 // external helper stuff for image output
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "assetImporter.h"
 #include "../../externals/stb/stb_image_write.h"
+#include "assimp/Importer.hpp"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -69,6 +71,11 @@ extern "C" char deviceCode_ptx[];
 
 int main(int ac, char **av)
 {
+  // Test assetImporter
+  Assimp::Importer *ai_importer = new Assimp::Importer;
+  AssetImporter importer(ai_importer, "../assets/models/simple-cube/cubes.glb");
+  auto geom = importer.get_geometry();
+
   LOG("owl::ng example '" << av[0] << "' starting up");
 
   // create a context on the first device:

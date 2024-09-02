@@ -28,7 +28,15 @@ embed_ptx(
 add_executable(photonMapping photon-mapping/src/hostCode.cxx)
 add_executable(rayTracer ray-tracer/src/hostCode.cxx)
 
+target_sources(rayTracer
+        PRIVATE
+            ray-tracer/src/assetImporter.h
+            ray-tracer/src/assetImporter.cxx
+)
+
 set(owl_dir ${PROJECT_SOURCE_DIR}/externals/owl)
+set(assimp_dir ${PROJECT_SOURCE_DIR}/externals/assimp)
 add_subdirectory(${owl_dir} EXCLUDE_FROM_ALL)
-target_link_libraries(photonMapping PRIVATE photonMapping-ptx owl::owl)
-target_link_libraries(rayTracer PRIVATE rayTracer-ptx owl::owl)
+add_subdirectory(${assimp_dir} EXCLUDE_FROM_ALL)
+target_link_libraries(photonMapping PRIVATE photonMapping-ptx owl::owl assimp::assimp)
+target_link_libraries(rayTracer PRIVATE rayTracer-ptx owl::owl assimp::assimp)
