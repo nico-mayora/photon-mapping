@@ -72,7 +72,7 @@ extern "C" char deviceCode_ptx[];
 int main(int ac, char **av)
 {
   // Test assetImporter
-  Assimp::Importer *ai_importer = new Assimp::Importer;
+  auto *ai_importer = new Assimp::Importer;
   AssetImporter importer(ai_importer, "../assets/models/simple-cube/cubes.glb");
   auto geom = importer.get_geometry();
 

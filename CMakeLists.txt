@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.27)
 project(photonMapping CUDA CXX C)
 
 include(cmake/embed_ptx.cmake)
-
 set(CMAKE_CUDA_STANDARD 11)
 set(OptiX_ROOT_DIR $ENV{OptiX_INSTALL_DIR})
 set(CMAKE_PREFIX_PATH $ENV{OptiX_INSTALL_DIR})
@@ -30,8 +29,10 @@ add_executable(rayTracer ray-tracer/src/hostCode.cxx)
 
 target_sources(rayTracer
         PRIVATE
+            # NOTE: the headers aren't really necessary but CLion will complain without them here.
             ray-tracer/src/assetImporter.h
             ray-tracer/src/assetImporter.cxx
+            ray-tracer/src/material.h
 )
 
 set(owl_dir ${PROJECT_SOURCE_DIR}/externals/owl)
@@ -40,3 +41,5 @@ add_subdirectory(${owl_dir} EXCLUDE_FROM_ALL)
 add_subdirectory(${assimp_dir} EXCLUDE_FROM_ALL)
 target_link_libraries(photonMapping PRIVATE photonMapping-ptx owl::owl assimp::assimp)
 target_link_libraries(rayTracer PRIVATE rayTracer-ptx owl::owl assimp::assimp)
+
+target_compile_features(rayTracer PRIVATE cxx_std_17)

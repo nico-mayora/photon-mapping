@@ -1,14 +1,15 @@
 #pragma once
 
+#include <utility>
 #include <vector>
 
+#include "material.h"
 #include "../../externals/assimp/include/assimp/Importer.hpp"
 #include "owl/common/math/vec.h"
 
 /* This class stores the mesh in the format expected by Optix.
  * TODO:
  *  Textures
- *  Different materials (only Lambertian rn)
  */
 
 /* The vectors need to be (trivially) transformed into regular arrays
@@ -16,11 +17,10 @@
 struct Mesh {
     std::vector<owl::vec3f> vertices;
     std::vector<owl::vec3i> indices;
-    std::vector<owl::vec3f> colours;
+    std::shared_ptr<Material> material;
 };
 
 class AssetImporter {
-private:
     std::unique_ptr<Assimp::Importer> importer;
 
     const std::string path;
@@ -29,6 +29,6 @@ private:
     void initialise_meshes();
 
 public:
-    AssetImporter(Assimp::Importer *importer, std::string path): path(path), importer(importer) {};
+    AssetImporter(Assimp::Importer *importer, std::string path): importer(importer), path(std::move(path)) {};
     std::vector<Mesh>& get_geometry();
 };
