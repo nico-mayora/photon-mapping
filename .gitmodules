@@ -4,3 +4,9 @@
 [submodule "externals/stb"]
 	path = externals/stb
 	url = https://github.com/nothings/stb
+[submodule "externals/cudaKDTree"]
+	path = externals/cudaKDTree
+	url = https://github.com/ingowald/cudaKDTree
+[submodule "externals/assimp"]
+	path = externals/assimp
+	url = https://github.com/assimp/assimp
