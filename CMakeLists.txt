@@ -32,7 +32,7 @@ target_sources(rayTracer
             # NOTE: the headers aren't really necessary but CLion will complain without them here.
             ray-tracer/src/assetImporter.h
             ray-tracer/src/assetImporter.cxx
-            ray-tracer/src/material.h
+            ray-tracer/src/mesh.h
 )
 
 set(owl_dir ${PROJECT_SOURCE_DIR}/externals/owl)
