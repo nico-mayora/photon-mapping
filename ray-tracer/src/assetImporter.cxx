@@ -84,8 +84,15 @@ static std::shared_ptr<Material> mesh_material(const aiScene *scene, const aiMes
     const auto material = scene->mMaterials[material_idx];
 
     // TODO: Non-lambertian
+    auto type = LAMBERTIAN;
     aiColor3D colour;
     material->Get(AI_MATKEY_COLOR_DIFFUSE, colour);
 
-    return std::make_shared<Lambertian>(owl::vec3f(colour.r, colour.g, colour.b));
+    auto mat = std::make_shared<Material>();
+    mat->albedo = owl::vec3f(colour.r, colour.g, colour.b);
+    mat->surface_type = type;
+    mat->specular_roughness = -1;
+    mat->refraction_idx = -1;
+
+    return mat;
 }

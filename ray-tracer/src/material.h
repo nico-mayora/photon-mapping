@@ -1,23 +1,16 @@
 #pragma once
 #include "owl/common/math/vec.h"
 
-class Material {
-  public:
-    virtual ~Material() = default;
-    // TODO: create real function signature.
-    virtual bool scatter() = 0;
+/* We store the MaterialType to correctly pick the BSDF when reflecting the rays. */
+enum MaterialType {
+    LAMBERTIAN,
+    SPECULAR,
+    GLASS,
 };
 
-struct Lambertian final : Material {
-    explicit Lambertian(const owl::vec3f& albedo): albedo(albedo) {}
+struct Material {
+    MaterialType surface_type;
     owl::vec3f albedo;
-    bool scatter() override { return false; }
-};
-
-struct Specular : Material {
-    double roughness;
-};
-
-struct Glass : Material {
+    double specular_roughness;
     double refraction_idx;
 };
