@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "mesh.h"
+#include "world.h"
 #include "../../externals/assimp/include/assimp/Importer.hpp"
 #include "owl/common/math/vec.h"
 
