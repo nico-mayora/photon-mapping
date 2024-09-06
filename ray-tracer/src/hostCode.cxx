@@ -36,31 +36,8 @@
   std::cout << "#owl.sample(main): " << message << std::endl;   \
   std::cout << OWL_TERMINAL_DEFAULT;
 
-const int NUM_VERTICES = 8;
-vec3f vertices[NUM_VERTICES] =
-  {
-    { -1.f,-1.f,-1.f },
-    { +1.f,-1.f,-1.f },
-    { -1.f,+1.f,-1.f },
-    { +1.f,+1.f,-1.f },
-    { -1.f,-1.f,+1.f },
-    { +1.f,-1.f,+1.f },
-    { -1.f,+1.f,+1.f },
-    { +1.f,+1.f,+1.f }
-  };
-
-const int NUM_INDICES = 12;
-vec3i indices[NUM_INDICES] =
-  {
-    { 0,1,3 }, { 2,3,0 },
-    { 5,7,6 }, { 5,6,4 },
-    { 0,4,5 }, { 0,5,1 },
-    { 2,3,7 }, { 2,7,6 },
-    { 1,5,7 }, { 1,7,3 },
-    { 4,0,2 }, { 4,2,6 }
-  };
-
-const char *outFileName = "s01-simpleTriangles.png";
+/* Image configuration */
+const char *outFileName = "result.png";
 const vec2i fbSize(800,600);
 const vec3f lookFrom(-4.f,-3.f,-2.f);
 const vec3f lookAt(0.f,0.f,0.f);
@@ -71,12 +48,11 @@ extern "C" char deviceCode_ptx[];
 
 int main(int ac, char **av)
 {
-  // Test assetImporter
+  LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  AssetImporter importer(ai_importer, "../assets/models/simple-cube/cubes.glb");
-  auto geom = importer.get_geometry();
+  auto world =  assets::import_scene(ai_importer, "../assets/models/simple-cube/cubes.glb");
 
-  LOG("owl::ng example '" << av[0] << "' starting up");
+  LOG_OK("Loaded world.");
 
   // create a context on the first device:
   OWLContext context = owlContextCreate(nullptr,1);
@@ -111,6 +87,9 @@ int main(int ac, char **av)
   // ------------------------------------------------------------------
   // triangle mesh
   // ------------------------------------------------------------------
+
+
+
   OWLBuffer vertexBuffer
     = owlDeviceBufferCreate(context,OWL_FLOAT3,NUM_VERTICES,vertices);
   OWLBuffer indexBuffer

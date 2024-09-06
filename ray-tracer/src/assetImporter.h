@@ -9,18 +9,12 @@
 #include "owl/common/math/vec.h"
 
 /*
- * TODO: Image textures
+ * TODO:
+ *  Image textures
+ *  Import camera
+ *  Import light sources
  */
 
-class AssetImporter {
-    std::unique_ptr<Assimp::Importer> importer;
-
-    const std::string path;
-    std::vector<Mesh> meshes;
-
-    void initialise_meshes();
-
-public:
-    AssetImporter(Assimp::Importer *importer, std::string path): importer(importer), path(std::move(path)) {};
-    std::vector<Mesh>& get_geometry();
+namespace assets {
+    std::unique_ptr<World> import_scene(Assimp::Importer *importer, const std::string& path);
 };
