@@ -1,24 +1,25 @@
 #include "assetImporter.h"
 
+#include <fstream>
 #include <queue>
 #include <set>
 
 #include "../../externals/assimp/include/assimp/scene.h"
 #include "../../externals/assimp/include/assimp/postprocess.h"
 
-static std::vector<Mesh> init_meshes(const aiScene*);
-static std::vector<LightSource> init_lights(const aiScene*);
-static Camera init_camera(const aiScene*);
+static std::vector<Mesh> extract_objects(const aiScene*);
+static std::vector<LightSource> extract_lights(std::string&);
 
-std::unique_ptr<World> assets::import_scene(Assimp::Importer *importer, const std::string& path) {
+std::unique_ptr<World> assets::import_scene(Assimp::Importer* importer, std::string& path) {
     std::unique_ptr<World> world(new World);
     const aiScene *scene = importer->ReadFile(path,
             aiProcess_Triangulate
             | aiProcess_JoinIdenticalVertices
             | aiProcess_SortByPType);
-    world->meshes = init_meshes(scene);
-    world->light_sources = init_lights(scene);
-    world->camera = init_camera(scene);
+
+    assert(scene != nullptr);
+    world->meshes = extract_objects(scene);
+    world->light_sources = extract_lights(path);
 
     return world;
 }
@@ -41,7 +42,7 @@ static std::shared_ptr<Material> mesh_material(const aiScene *scene, const aiMes
     return mat;
 }
 
-static std::vector<Mesh> init_meshes(const aiScene *scene) {
+static std::vector<Mesh> extract_objects(const aiScene *scene) {
     std::queue<std::pair<aiNode*, aiMatrix4x4>> unprocessed_nodes;
     unprocessed_nodes.emplace(scene->mRootNode, aiMatrix4x4());
 
@@ -76,7 +77,7 @@ static std::vector<Mesh> init_meshes(const aiScene *scene) {
                     auto vertex_position_in_verts = std::find(verts.begin(), verts.end(), vertex_pos);
                     if (vertex_position_in_verts == std::end(verts)) { // vertex is not already in `verts` collection.
                         verts.emplace_back(vertex_pos);
-                        face_indices.push_back(++vert_count);
+                        face_indices.push_back(vert_count++);
                         continue;
                     }
                     const auto numeric_position = distance(verts.begin(), vertex_position_in_verts); // NOLINT(*-narrowing-conversions)
@@ -102,18 +103,36 @@ static std::vector<Mesh> init_meshes(const aiScene *scene) {
     return meshes;
 }
 
-// TODO: implement this stub
-static std::vector<LightSource> init_lights(const aiScene*) {
-    return {};
-}
 
-// TODO: implement this stub
-static Camera init_camera(const aiScene*) {
-    Camera cam;
-    cam.origin = owl::vec3f(0,0,0);
-    cam.horizontal = owl::vec3f(1,0,0);
-    cam.vertical = owl::vec3f(0,1,0);
-    cam.lower_left_corner = owl::vec3f(-1, 0, 0);
+static std::vector<LightSource> extract_lights(std::string& path) {
+    const std::size_t last_slash = path.find_last_of("/\\");
+    const auto base_path = path.substr(0,last_slash);
 
-    return cam;
+    auto full_path = base_path + "/lights.txt";
+    std::replace(full_path.begin(), full_path.end(), '/', '\\');
+
+    std::vector<LightSource> lightSources;
+    std::ifstream file(full_path);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Unable to open file: " + full_path);
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        LightSource light;
+
+        light.source_type = POINT_LIGHT;  // Assuming all lights are point lights
+
+        if (!(iss >> light.pos.x >> light.pos.y >> light.pos.z >>
+              light.rgb.x >> light.rgb.y >> light.rgb.z >>
+              light.power)) {
+            throw std::runtime_error("Invalid light source data format");
+              }
+
+        lightSources.push_back(light);
+    }
+
+    return lightSources;
 }

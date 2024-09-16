@@ -13,16 +13,10 @@ struct LightSource {
     LightType source_type;
     owl::vec3f pos;
     double power;
+    owl::vec3f rgb;
     /* for emission surface */
     owl::vec3f normal;
     double side_length;
-};
-
-struct Camera {
-    owl::vec3f origin;
-    owl::vec3f lower_left_corner;
-    owl::vec3f horizontal;
-    owl::vec3f vertical;
 };
 
 /* This holds all the state required for the path tracer to function.
@@ -32,5 +26,5 @@ struct Camera {
 struct World {
     std::vector<LightSource> light_sources;
     std::vector<Mesh> meshes;
-    Camera camera;
+    unsigned int photons_num;
 };

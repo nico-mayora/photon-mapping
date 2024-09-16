@@ -16,5 +16,5 @@
  */
 
 namespace assets {
-    std::unique_ptr<World> import_scene(Assimp::Importer *importer, const std::string& path);
+    std::unique_ptr<World> import_scene(Assimp::Importer* importer, std::string& path);
 };

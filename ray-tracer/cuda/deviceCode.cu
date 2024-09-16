@@ -17,6 +17,8 @@
 #include "deviceCode.h"
 #include <optix_device.h>
 
+using namespace owl;
+
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
   const RayGenData &self = owl::getProgramData<RayGenData>();
@@ -42,6 +44,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
                 /*prd*/color);
 
   const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
+
   self.fbPtr[fbOfs]
     = owl::make_rgba(color);
 }
@@ -50,7 +53,7 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
   vec3f &prd = owl::getPRD<vec3f>();
 
-  const TrianglesGeomData &self = owl::getProgramData<TrianglesGeomData>();
+  const auto self = owl::getProgramData<TrianglesGeomData>();
 
   // compute normal:
   const int   primID = optixGetPrimitiveIndex();
@@ -61,7 +64,9 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const vec3f Ng     = normalize(cross(B-A,C-A));
 
   const vec3f rayDir = optixGetWorldRayDirection();
-  prd = (.2f + .8f*fabs(dot(rayDir,Ng)))*self.color;
+  const auto &material = *self.material;
+
+  prd = (.2f + .8f*fabs(dot(rayDir,Ng))) * material.albedo;
 }
 
 OPTIX_MISS_PROGRAM(miss)()
@@ -71,7 +76,6 @@ OPTIX_MISS_PROGRAM(miss)()
   const MissProgData &self = owl::getProgramData<MissProgData>();
 
   vec3f &prd = owl::getPRD<vec3f>();
-  int pattern = (pixelID.x / 8) ^ (pixelID.y/8);
-  prd = (pattern&1) ? self.color1 : self.color0;
+  prd = self.sky_color;
 }
 
