@@ -170,13 +170,13 @@ int main(int ac, char **av)
   // set up ray gen program
   // -------------------------------------------------------
   OWLVarDecl rayGenVars[] = {
-    { "fbPtr",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
-    { "fbSize",        OWL_INT2,   OWL_OFFSETOF(RayGenData,fbSize)},
-    { "world",         OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
-    { "camera.pos",    OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.pos)},
-    { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_00)},
-    { "camera.dir_du", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_du)},
-    { "camera.dir_dv", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_dv)},
+    { "fbPtr", OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
+    { "fbSize", OWL_INT2,   OWL_OFFSETOF(RayGenData,fbSize)},
+    { "world", OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
+    { "camera.origin", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.origin)},
+    { "camera.lower_left_corner", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.lower_left_corner)},
+    { "camera.horizontal", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.horizontal)},
+    { "camera.vertical", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.vertical)},
     { /* sentinel to mark end of list */ }
   };
 

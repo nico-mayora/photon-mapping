@@ -18,20 +18,10 @@
 
 #include <owl/owl.h>
 #include <owl/common/math/vec.h>
+#include <owl/common/math/random.h>
+#include "../shared/common.h"
 
-/* We store the MaterialType to correctly pick the BSDF when reflecting incident rays. */
-enum MaterialType {
-    LAMBERTIAN,
-    SPECULAR,
-    GLASS,
-};
-
-struct Material {
-    MaterialType surface_type;
-    owl::vec3f albedo;
-    double specular_roughness;
-    double refraction_idx;
-};
+typedef owl::LCG<4> Random;
 
 /* variables for the triangle mesh geometry */
 struct TrianglesGeomData
@@ -52,11 +42,28 @@ struct RayGenData
     OptixTraversableHandle world;
 
     struct {
-        owl::vec3f pos;
-        owl::vec3f dir_00; // out-of-screen
-        owl::vec3f dir_du; // left-to-right
-        owl::vec3f dir_dv; // bottom-to-top
+        owl::vec3f origin;
+        owl::vec3f lower_left_corner;
+        owl::vec3f horizontal;
+        owl::vec3f vertical;
     } camera;
+};
+
+enum ScatterEvent {
+    Reflected,
+    Absorbed,
+    Missed,
+};
+
+struct PerRayData
+{
+    Random random;
+    struct {
+        ScatterEvent scatterEvent;
+        owl::vec3f scattered_origin;
+        owl::vec3f scattered_direction;
+        owl::vec3f attenuation;
+    } out;
 };
 
 /* variables for the miss program */

@@ -1,7 +1,7 @@
 #pragma once
 #include "owl/common/math/vec.h"
 #include "../cuda/deviceCode.h"
-
+#include "../shared/common.h"
 
 /* The vectors need to be (trivially) transformed into regular arrays
    before being passed into OptiX */

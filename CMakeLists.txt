@@ -34,6 +34,7 @@ target_sources(rayTracer
             ray-tracer/src/assetImporter.cxx
             ray-tracer/src/mesh.h
             ray-tracer/src/world.h
+            ray-tracer/shared/common.h
 )
 
 set(owl_dir ${PROJECT_SOURCE_DIR}/externals/owl)
