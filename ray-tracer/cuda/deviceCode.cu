@@ -17,41 +17,47 @@
 #include "deviceCode.h"
 #include <optix_device.h>
 
+#define SAMPLES_PER_PIXEL 500
+
 using namespace owl;
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
   const RayGenData &self = owl::getProgramData<RayGenData>();
   const vec2i pixelID = owl::getLaunchIndex();
-  if (pixelID == owl::vec2i(0)) {
-    printf("%sHello OptiX From your First RayGen Program%s\n",
-           OWL_TERMINAL_CYAN,
-           OWL_TERMINAL_DEFAULT);
+
+  PerRayData prd;
+  prd.random.init(pixelID.x,pixelID.y);
+
+  auto final_colour = vec3f(0.f);
+  for (int sample = 0; sample < SAMPLES_PER_PIXEL; sample++) {
+    const auto random_eps = vec2f(prd.random(), prd.random());
+    const vec2f screen = (vec2f(pixelID)+random_eps) / vec2f(self.fbSize);
+    Ray ray;
+    ray.origin
+      = self.camera.pos;
+    ray.direction
+      = normalize(self.camera.dir_00
+                  + screen.u * self.camera.dir_du
+                  + screen.v * self.camera.dir_dv);
+
+    owl::traceRay(/*accel to trace against*/self.world,
+                  /*the ray to trace*/ray,
+                  /*prd*/prd);
+    final_colour += prd.colour;
   }
 
-  const vec2f screen = (vec2f(pixelID)+vec2f(.5f)) / vec2f(self.fbSize);
-  owl::Ray ray;
-  ray.origin
-    = self.camera.pos;
-  ray.direction
-    = normalize(self.camera.dir_00
-                + screen.u * self.camera.dir_du
-                + screen.v * self.camera.dir_dv);
-
-  vec3f color;
-  owl::traceRay(/*accel to trace against*/self.world,
-                /*the ray to trace*/ray,
-                /*prd*/color);
+  final_colour = final_colour * (1.f / SAMPLES_PER_PIXEL);
 
   const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
 
   self.fbPtr[fbOfs]
-    = owl::make_rgba(color);
+    = owl::make_rgba(final_colour);
 }
 
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
-  vec3f &prd = owl::getPRD<vec3f>();
+  auto &prd = owl::getPRD<PerRayData>();
 
   const auto self = owl::getProgramData<TrianglesGeomData>();
 
@@ -66,7 +72,7 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const vec3f rayDir = optixGetWorldRayDirection();
   const auto &material = *self.material;
 
-  prd = (.2f + .8f*fabs(dot(rayDir,Ng))) * material.albedo;
+  prd.colour = (.2f + .8f*fabs(dot(rayDir,Ng))) * material.albedo;
 }
 
 OPTIX_MISS_PROGRAM(miss)()

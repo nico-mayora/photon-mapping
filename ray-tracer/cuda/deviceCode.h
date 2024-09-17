@@ -18,6 +18,7 @@
 
 #include <owl/owl.h>
 #include <owl/common/math/vec.h>
+#include <owl/common/math/random.h>
 
 /* We store the MaterialType to correctly pick the BSDF when reflecting incident rays. */
 enum MaterialType {
@@ -57,6 +58,13 @@ struct RayGenData
         owl::vec3f dir_du; // left-to-right
         owl::vec3f dir_dv; // bottom-to-top
     } camera;
+};
+
+typedef owl::LCG<> Random;
+
+struct PerRayData {
+    owl::vec3f colour;
+    Random random;
 };
 
 /* variables for the miss program */
