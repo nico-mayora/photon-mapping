@@ -36,6 +36,16 @@ target_sources(rayTracer
             ray-tracer/src/world.h
 )
 
+target_sources(photonMapping
+        PRIVATE
+            # NOTE: the headers aren't really necessary but CLion will complain without them here.
+            photon-mapping/src/assetImporter.h
+            photon-mapping/src/assetImporter.cxx
+            photon-mapping/src/mesh.h
+            photon-mapping/src/world.h
+)
+
+
 set(owl_dir ${PROJECT_SOURCE_DIR}/externals/owl)
 set(assimp_dir ${PROJECT_SOURCE_DIR}/externals/assimp)
 add_subdirectory(${owl_dir} EXCLUDE_FROM_ALL)
@@ -44,3 +54,4 @@ target_link_libraries(photonMapping PRIVATE photonMapping-ptx owl::owl assimp::a
 target_link_libraries(rayTracer PRIVATE rayTracer-ptx owl::owl assimp::assimp)
 
 target_compile_features(rayTracer PRIVATE cxx_std_17)
+target_compile_features(photonMapping PRIVATE cxx_std_17)
