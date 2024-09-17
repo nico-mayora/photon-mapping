@@ -21,36 +21,34 @@
 
 #define MAX_RAY_BOUNCES 100
 #define SAMPLES_PER_PIXEL 500
+#define EPS 0.1
 
 using namespace owl;
 
 inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
-  if (prd.bounces_ramaining == 0) {
-    return vec3f(0.f);
-  }
-  prd.bounces_ramaining -= 1;
+  auto acum = vec3f(1.);
 
-  owl::traceRay(self.world, ray, prd);
+  for (int i = 0; i < MAX_RAY_BOUNCES; i++) {
+    traceRay(self.world, ray, prd);
 
-  if (prd.event == Absorbed) {
-    return vec3f(0.f);
-  }
+    if (prd.event == Absorbed) {
+      return vec3f(0.f);
+    }
 
-  if (prd.event == Scattered) {
-    Ray scattered_ray;
-    scattered_ray.direction = prd.scattered.s_direction;
-    scattered_ray.origin = prd.scattered.s_origin;
+    if (prd.event == Scattered) {
+      ray.direction = prd.scattered.s_direction;
+      ray.origin = prd.scattered.s_origin;
 
-    const auto bounced_colour = tracePath(self, scattered_ray, prd);
-    return prd.colour * bounced_colour;
-  }
+      acum *= prd.colour;
+    }
 
-  if (prd.event == Missed) {
-    return prd.colour;
+    if (prd.event == Missed) {
+      return acum * prd.colour;
+    }
   }
 
-  return vec3f(0.f);
+  return acum;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -99,15 +97,24 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const vec3f &A     = self.vertex[index.x];
   const vec3f &B     = self.vertex[index.y];
   const vec3f &C     = self.vertex[index.z];
-  const vec3f Ng     = normalize(cross(B-A,C-A));
+  vec3f Ng     = normalize(cross(B-A,C-A));
 
   // scatter ray:
-  const auto scatter_direction = Ng + normalize(randomPointInUnitSphere(prd.random));
-  prd.scattered.s_direction = scatter_direction;
-
-  auto tmax = optixGetRayTmax();
   const vec3f rayDir = optixGetWorldRayDirection();
   const vec3f rayOrg = optixGetWorldRayOrigin();
+  /*if (dot(Ng,rayDir)  > 0.f)
+    Ng = -Ng;
+  Ng = normalize(Ng);*/
+
+  auto scatter_direction = Ng + normalize(randomPointInUnitSphere(prd.random));
+
+  if (dot(scatter_direction, scatter_direction) < EPS) {
+    scatter_direction = Ng;
+  }
+
+  prd.scattered.s_direction = scatter_direction;
+  const auto tmax = optixGetRayTmax();
+
   prd.scattered.s_origin = rayOrg + tmax * rayDir;
 
   const auto &material = *self.material;
