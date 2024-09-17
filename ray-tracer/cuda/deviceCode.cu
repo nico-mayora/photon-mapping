@@ -19,9 +19,9 @@
 
 #include <optix_device.h>
 
-#define MAX_RAY_BOUNCES 100
-#define SAMPLES_PER_PIXEL 500
-#define EPS 0.1
+#define MAX_RAY_BOUNCES 30
+#define SAMPLES_PER_PIXEL 250
+#define EPS 1e-3f
 
 using namespace owl;
 
@@ -37,9 +37,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
     }
 
     if (prd.event == Scattered) {
-      ray.direction = prd.scattered.s_direction;
-      ray.origin = prd.scattered.s_origin;
-
+      ray = Ray(prd.scattered.s_origin, prd.scattered.s_direction, EPS, 1e10f);
       acum *= prd.colour;
     }
 
@@ -73,7 +71,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
                   + screen.v * self.camera.dir_dv);
 
     prd.bounces_ramaining = MAX_RAY_BOUNCES;
-    auto colour = tracePath(self, ray, prd);
+    const auto colour = tracePath(self, ray, prd);
 
     final_colour += colour;
   }
@@ -83,7 +81,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
 
   self.fbPtr[fbOfs]
-    = owl::make_rgba(final_colour);
+    = make_rgba(final_colour);
 }
 
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
@@ -102,9 +100,10 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   // scatter ray:
   const vec3f rayDir = optixGetWorldRayDirection();
   const vec3f rayOrg = optixGetWorldRayOrigin();
-  /*if (dot(Ng,rayDir)  > 0.f)
-    Ng = -Ng;
-  Ng = normalize(Ng);*/
+
+  if (dot(Ng,rayDir)  > 0.f) // If both dir and normal have the same direction...
+    Ng = -Ng; // ...flip normal...
+  Ng = normalize(Ng); // ...and renormalise just in case.
 
   auto scatter_direction = Ng + normalize(randomPointInUnitSphere(prd.random));
 

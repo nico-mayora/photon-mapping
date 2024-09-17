@@ -11,8 +11,6 @@
 /*
  * TODO:
  *  Image textures
- *  Import camera
- *  Import light sources
  */
 
 namespace assets {

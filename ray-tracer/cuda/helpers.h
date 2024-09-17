@@ -11,3 +11,5 @@ inline __device__ owl::vec3f randomPointInUnitSphere(Random &rnd) {
     } while (dot(p,p) >= 1.0f);
     return p;
 }
+
+inline __device__ owl::vec3f scatterLambertian(Random &rnd) { return owl::vec3f(0.); }

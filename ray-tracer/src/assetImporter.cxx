@@ -1,14 +1,17 @@
 #include "assetImporter.h"
 
 #include <fstream>
+#include <map>
 #include <queue>
 #include <set>
 
 #include "../../externals/assimp/include/assimp/scene.h"
 #include "../../externals/assimp/include/assimp/postprocess.h"
 
-static std::vector<Mesh> extract_objects(const aiScene*);
+static std::vector<Mesh> extract_objects(const aiScene*, std::map<std::string, std::pair<double, double>>&);
 static std::vector<LightSource> extract_lights(std::string&);
+
+std::map<std::string, std::pair<double, double>> loadMaterials(const std::string&);
 
 std::unique_ptr<World> assets::import_scene(Assimp::Importer* importer, std::string& path) {
     std::unique_ptr<World> world(new World);
@@ -18,31 +21,54 @@ std::unique_ptr<World> assets::import_scene(Assimp::Importer* importer, std::str
             | aiProcess_SortByPType);
 
     assert(scene != nullptr);
-    world->meshes = extract_objects(scene);
+    auto materials = loadMaterials(path);
+    world->meshes = extract_objects(scene, materials);
     world->light_sources = extract_lights(path);
 
     return world;
 }
 
-static std::shared_ptr<Material> mesh_material(const aiScene *scene, const aiMesh *mesh) {
+
+static std::shared_ptr<Material> mesh_material(
+    const aiScene *scene,
+    const aiMesh *mesh,
+    std::map<std::string,
+    std::pair<double, double>>& materials)
+{
     const auto material_idx = mesh->mMaterialIndex;
     const auto material = scene->mMaterials[material_idx];
 
-    // TODO: Non-lambertian
-    auto type = LAMBERTIAN;
+    MaterialType type = LAMBERTIAN;
     aiColor3D colour;
     material->Get(AI_MATKEY_COLOR_DIFFUSE, colour);
+
+    double reflectivity = 0.f;
+    double refract_index = 0.f;
+
+    aiString name;
+    material->Get(AI_MATKEY_NAME,name);
+    const std::string mat_name(name.C_Str());
+
+    if (materials.count(mat_name)) {
+        if (const auto [reflect, ior] = materials.at(mat_name); reflect != 0.0) {
+            type = SPECULAR;
+            reflectivity = reflect;
+        } else if (ior != 0.0) {
+            type = GLASS;
+            refract_index = ior;
+        }
+    }
 
     auto mat = std::make_shared<Material>();
     mat->albedo = owl::vec3f(colour.r, colour.g, colour.b);
     mat->surface_type = type;
-    mat->specular_roughness = -1;
-    mat->refraction_idx = -1;
+    mat->reflectivity = reflectivity;
+    mat->refraction_idx = refract_index;
 
     return mat;
 }
 
-static std::vector<Mesh> extract_objects(const aiScene *scene) {
+static std::vector<Mesh> extract_objects(const aiScene *scene, std::map<std::string, std::pair<double, double>>& materials) {
     std::queue<std::pair<aiNode*, aiMatrix4x4>> unprocessed_nodes;
     unprocessed_nodes.emplace(scene->mRootNode, aiMatrix4x4());
 
@@ -95,7 +121,7 @@ static std::vector<Mesh> extract_objects(const aiScene *scene) {
             Mesh output_mesh;
             output_mesh.vertices = verts;
             output_mesh.indices = idx;
-            output_mesh.material = mesh_material(scene, current_mesh);
+            output_mesh.material = mesh_material(scene, current_mesh, materials);
 
             meshes.push_back(output_mesh);
         }
@@ -135,4 +161,36 @@ static std::vector<LightSource> extract_lights(std::string& path) {
     }
 
     return lightSources;
+}
+
+std::map<std::string, std::pair<double, double>> loadMaterials(const std::string& path) {
+    const std::size_t last_slash = path.find_last_of("/\\");
+    const auto base_path = path.substr(0,last_slash);
+
+    auto filename = base_path + "/materials.txt";
+    std::replace(filename.begin(), filename.end(), '/', '\\');
+
+    std::map<std::string, std::pair<double, double>> materials;
+    std::ifstream file(filename);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return materials;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string material_name;
+        double specularity, ior;
+
+        if (iss >> material_name >> specularity >> ior) {
+            materials[material_name] = std::make_pair(specularity, ior);
+        } else {
+            std::cerr << "Error parsing line: " << line << std::endl;
+        }
+    }
+
+    file.close();
+    return materials;
 }
