@@ -63,8 +63,14 @@ struct RayGenData
 typedef owl::LCG<> Random;
 
 struct PerRayData {
-    owl::vec3f colour;
     Random random;
+    int bounces_ramaining;
+
+    owl::vec3f colour;
+    struct {
+        owl::vec3f s_origin;
+        owl::vec3f s_direction;
+    } scattered;
 };
 
 /* variables for the miss program */

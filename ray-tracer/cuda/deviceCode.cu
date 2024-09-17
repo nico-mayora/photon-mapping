@@ -17,6 +17,7 @@
 #include "deviceCode.h"
 #include <optix_device.h>
 
+#define MAX_RAY_BOUNCES 100
 #define SAMPLES_PER_PIXEL 500
 
 using namespace owl;
@@ -27,6 +28,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   const vec2i pixelID = owl::getLaunchIndex();
 
   PerRayData prd;
+  prd.bounces_ramaining = MAX_RAY_BOUNCES;
   prd.random.init(pixelID.x,pixelID.y);
 
   auto final_colour = vec3f(0.f);
@@ -58,6 +60,12 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
   auto &prd = owl::getPRD<PerRayData>();
+  if (prd.bounces_ramaining == 0) {
+    prd.colour = vec3f(0.f);
+    return;
+  }
+
+  prd.bounces_ramaining -= 1;
 
   const auto self = owl::getProgramData<TrianglesGeomData>();
 
