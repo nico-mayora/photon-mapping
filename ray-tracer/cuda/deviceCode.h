@@ -62,11 +62,18 @@ struct RayGenData
 
 typedef owl::LCG<> Random;
 
+enum RayEvent {
+    Scattered,
+    Absorbed,
+    Missed,
+};
+
 struct PerRayData {
     Random random;
     int bounces_ramaining;
 
     owl::vec3f colour;
+    RayEvent event;
     struct {
         owl::vec3f s_origin;
         owl::vec3f s_direction;

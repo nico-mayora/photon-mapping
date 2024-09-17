@@ -15,6 +15,8 @@
 // ======================================================================== //
 
 #include "deviceCode.h"
+#include "helpers.h"
+
 #include <optix_device.h>
 
 #define MAX_RAY_BOUNCES 100
@@ -22,19 +24,48 @@
 
 using namespace owl;
 
+inline __device__
+vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
+  if (prd.bounces_ramaining == 0) {
+    return vec3f(0.f);
+  }
+  prd.bounces_ramaining -= 1;
+
+  owl::traceRay(self.world, ray, prd);
+
+  if (prd.event == Absorbed) {
+    return vec3f(0.f);
+  }
+
+  if (prd.event == Scattered) {
+    Ray scattered_ray;
+    scattered_ray.direction = prd.scattered.s_direction;
+    scattered_ray.origin = prd.scattered.s_origin;
+
+    const auto bounced_colour = tracePath(self, scattered_ray, prd);
+    return prd.colour * bounced_colour;
+  }
+
+  if (prd.event == Missed) {
+    return prd.colour;
+  }
+
+  return vec3f(0.f);
+}
+
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
   const RayGenData &self = owl::getProgramData<RayGenData>();
   const vec2i pixelID = owl::getLaunchIndex();
 
   PerRayData prd;
-  prd.bounces_ramaining = MAX_RAY_BOUNCES;
   prd.random.init(pixelID.x,pixelID.y);
 
   auto final_colour = vec3f(0.f);
   for (int sample = 0; sample < SAMPLES_PER_PIXEL; sample++) {
     const auto random_eps = vec2f(prd.random(), prd.random());
     const vec2f screen = (vec2f(pixelID)+random_eps) / vec2f(self.fbSize);
+
     Ray ray;
     ray.origin
       = self.camera.pos;
@@ -43,10 +74,10 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
                   + screen.u * self.camera.dir_du
                   + screen.v * self.camera.dir_dv);
 
-    owl::traceRay(/*accel to trace against*/self.world,
-                  /*the ray to trace*/ray,
-                  /*prd*/prd);
-    final_colour += prd.colour;
+    prd.bounces_ramaining = MAX_RAY_BOUNCES;
+    auto colour = tracePath(self, ray, prd);
+
+    final_colour += colour;
   }
 
   final_colour = final_colour * (1.f / SAMPLES_PER_PIXEL);
@@ -60,13 +91,6 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
   auto &prd = owl::getPRD<PerRayData>();
-  if (prd.bounces_ramaining == 0) {
-    prd.colour = vec3f(0.f);
-    return;
-  }
-
-  prd.bounces_ramaining -= 1;
-
   const auto self = owl::getProgramData<TrianglesGeomData>();
 
   // compute normal:
@@ -77,19 +101,27 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const vec3f &C     = self.vertex[index.z];
   const vec3f Ng     = normalize(cross(B-A,C-A));
 
+  // scatter ray:
+  const auto scatter_direction = Ng + normalize(randomPointInUnitSphere(prd.random));
+  prd.scattered.s_direction = scatter_direction;
+
+  auto tmax = optixGetRayTmax();
   const vec3f rayDir = optixGetWorldRayDirection();
+  const vec3f rayOrg = optixGetWorldRayOrigin();
+  prd.scattered.s_origin = rayOrg + tmax * rayDir;
+
   const auto &material = *self.material;
 
-  prd.colour = (.2f + .8f*fabs(dot(rayDir,Ng))) * material.albedo;
+  prd.event = Scattered;
+  prd.colour = material.albedo;
 }
 
 OPTIX_MISS_PROGRAM(miss)()
 {
-  const vec2i pixelID = owl::getLaunchIndex();
-
   const MissProgData &self = owl::getProgramData<MissProgData>();
 
-  vec3f &prd = owl::getPRD<vec3f>();
-  prd = self.sky_color;
+  auto &prd = owl::getPRD<PerRayData>();
+  prd.colour = self.sky_color;
+  prd.event = Missed;
 }
 
