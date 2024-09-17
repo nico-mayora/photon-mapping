@@ -19,8 +19,8 @@
 
 using namespace owl;
 
-#define SAMPLES_PER_PIXEL 24
-#define MAX_RAY_BOUNCES 50
+#define SAMPLES_PER_PIXEL 1
+#define MAX_RAY_BOUNCES 1
 
 inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
@@ -31,7 +31,10 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
 
     // ray didn't hit anything
     if (prd.out.scatterEvent == Missed)
-        return attenuation * prd.out.attenuation;
+        //return attenuation * prd.out.attenuation;
+          return attenuation * vec3f(0.f, 0.f, .5);
+
+    printf("tracing path...");
 
     // ray got absorbed
     if (prd.out.scatterEvent == Absorbed)
@@ -47,6 +50,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
+  /*
   const RayGenData &self = owl::getProgramData<RayGenData>();
   const vec2i pixelID = owl::getLaunchIndex();
 
@@ -58,16 +62,13 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
     Ray ray;
 
     const vec2f pixelSample(prd.random(),prd.random());
-    const vec2f screen
-      = (vec2f(pixelID)+pixelSample)
-      / vec2f(self.fbSize);
+    const vec2f screen = (vec2f(pixelID)+pixelSample) / vec2f(self.fbSize);
     const vec3f origin = self.camera.origin;
 
     const vec3f direction
-      = self.camera.lower_left_corner
+      = normalize(self.camera.lower_left_corner
       + screen.u * self.camera.horizontal
-      + screen.v * self.camera.vertical
-      - self.camera.origin;
+      + screen.v * self.camera.vertical - origin);
 
     ray.origin = origin;
     ray.direction = direction;
@@ -78,13 +79,35 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   const int fbOfs = pixelID.x + self.fbSize.x*pixelID.y;
 
   self.fbPtr[fbOfs]
-    = make_rgba(color / (1.f /SAMPLES_PER_PIXEL));
+    = make_rgba(color * (1.f /SAMPLES_PER_PIXEL));
+*/
+
+  const RayGenData &self = owl::getProgramData<RayGenData>();
+  const vec2i pixelID = owl::getLaunchIndex();
+
+  const vec2f screen = (vec2f(pixelID)+vec2f(.5f)) / vec2f(self.fbSize);
+  owl::Ray ray;
+  ray.origin
+    = self.camera.origin;
+  ray.direction
+    = normalize(self.camera.lower_left_corner
+                + screen.u * self.camera.horizontal
+                + screen.v * self.camera.vertical);
+
+  vec3f color;
+  owl::traceRay(/*accel to trace against*/self.world,
+                /*the ray to trace*/ray,
+                /*prd*/color);
+
+  const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
+  self.fbPtr[fbOfs]
+    = owl::make_rgba(color);
+
 }
 
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
   auto &prd = owl::getPRD<PerRayData>();
-
   const auto self = owl::getProgramData<TrianglesGeomData>();
 
   // compute normal:
@@ -93,12 +116,21 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const vec3f &A     = self.vertex[index.x];
   const vec3f &B     = self.vertex[index.y];
   const vec3f &C     = self.vertex[index.z];
-  const vec3f Ng     = normalize(cross(B-A,C-A));
+  const vec3f N     = normalize(cross(B-A,C-A));
+
+  printf("primID: %d", primID);
 
   const vec3f rayDir = optixGetWorldRayDirection();
   const auto &material = *self.material;
 
-  prd.out.attenuation = (.2f + .8f*fabs(dot(rayDir,Ng))) * material.albedo;
+  const vec3f org   = optixGetWorldRayOrigin();
+  const vec3f dir   = optixGetWorldRayDirection();
+  const float hit_t = optixGetRayTmax();
+  const vec3f hit_P = org + hit_t * dir;
+
+  prd.out.scatterEvent = scatter(material, hit_P, N, prd)
+    ? Reflected
+    : Absorbed;
 }
 
 OPTIX_MISS_PROGRAM(miss)()
@@ -107,6 +139,6 @@ OPTIX_MISS_PROGRAM(miss)()
 
   PerRayData &prd = owl::getPRD<PerRayData>();
   prd.out.scatterEvent = Missed;
-  prd.out.attenuation = self.sky_color;
+  //prd.out.attenuation = self.sky_color;
 }
 

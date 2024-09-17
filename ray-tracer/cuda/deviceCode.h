@@ -72,3 +72,54 @@ struct MissProgData
     owl::vec3f  sky_color;
 };
 
+/* --- Support functions for CUDA --- */
+#ifdef __CUDA_ARCH__
+
+#define RANDVEC3F owl::vec3f(rnd(),rnd(),rnd())
+
+inline __device__ owl::vec3f randomPointInUnitSphere(Random &rnd) {
+    owl::vec3f p;
+    do {
+        p = 2.0f*RANDVEC3F - owl::vec3f(1, 1, 1);
+    } while (dot(p,p) >= 1.0f);
+    return p;
+}
+
+inline __device__
+bool lambertianScatter(const Material &lambertian,
+             const owl::vec3f &P,
+             owl::vec3f N,
+             PerRayData &prd) {
+    const owl::vec3f org   = optixGetWorldRayOrigin();
+    const owl::vec3f dir   = optixGetWorldRayDirection();
+
+    if (dot(N,dir)  > 0.f)
+        N = -N;
+    N = normalize(N);
+
+    const owl::vec3f target
+      = P + (N + randomPointInUnitSphere(prd.random));
+
+    // return scattering event
+    prd.out.scattered_origin    = P;
+    prd.out.scattered_direction = (target-P);
+    prd.out.attenuation         = lambertian.albedo;
+    return true;
+
+}
+
+inline __device__
+bool scatter(const Material &material,
+             const owl::vec3f &P,
+             owl::vec3f N,
+             PerRayData &prd)
+{
+    switch (material.surface_type) {
+        case LAMBERTIAN:
+            return lambertianScatter(material, P, N, prd);
+        default:
+            return false;
+    }
+}
+
+#endif

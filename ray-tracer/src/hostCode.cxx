@@ -40,9 +40,9 @@
 /* Image configuration */
 auto outFileName = "result.png";
 const owl::vec2i fbSize(800,600);
-const owl::vec3f lookFrom(80.f,30.f,0.f);
-const owl::vec3f lookAt(10.f,20.f,0.f);
-const owl::vec3f lookUp(0.f,-1.f,0.f);
+const owl::vec3f lookFrom(-3.f,50.f,-3.f);
+const owl::vec3f lookAt(-3.f,-5.f,-3.f);
+const owl::vec3f lookUp(-1.f,0.f,0.f);
 constexpr float cosFovy = 0.66f;
 
 extern "C" char deviceCode_ptx[];
@@ -51,7 +51,7 @@ int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/cornell-box/cornell-box.glb";
+  std::string path = "../assets/models/one-cube/cube.obj";
   auto world =  assets::import_scene(ai_importer, path);
 
   LOG_OK("Loaded world.");
@@ -187,25 +187,30 @@ int main(int ac, char **av)
                       rayGenVars,-1);
 
   // ----------- compute variable values  ------------------
-  owl::vec3f camera_pos = lookFrom;
-  owl::vec3f camera_d00
-    = normalize(lookAt-lookFrom);
-  float aspect = fbSize.x / static_cast<float>(fbSize.y);
-  owl::vec3f camera_ddu
-    = cosFovy * aspect * normalize(cross(camera_d00,lookUp));
-  owl::vec3f camera_ddv
-    = cosFovy * normalize(cross(camera_ddu,camera_d00));
-  camera_d00 -= 0.5f * camera_ddu;
-  camera_d00 -= 0.5f * camera_ddv;
+  const float vfov = acos(cosFovy);
+  const owl::vec3f vup = lookUp;
+  const float aspect = fbSize.x / float(fbSize.y);
+  const float theta = vfov * ((float)M_PI) / 180.0f;
+  const float half_height = tanf(theta / 2.0f);
+  const float half_width = aspect * half_height;
+  const float focusDist = 10.f;
+  const owl::vec3f origin = lookFrom;
+  const owl::vec3f w = normalize(lookFrom - lookAt);
+  const owl::vec3f u = normalize(cross(vup, w));
+  const owl::vec3f v = cross(w, u);
+  const owl::vec3f lower_left_corner
+    = origin - half_width * focusDist*u - half_height * focusDist*v - focusDist * w;
+  const owl::vec3f horizontal = 2.0f*half_width*focusDist*u;
+  const owl::vec3f vertical = 2.0f*half_height*focusDist*v;
 
   // ----------- set variables  ----------------------------
   owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
   owlRayGenSet2i    (rayGen,"fbSize",       reinterpret_cast<const owl2i&>(fbSize));
   owlRayGenSetGroup (rayGen,"world",        owl_world);
-  owlRayGenSet3f    (rayGen,"camera.pos",   reinterpret_cast<const owl3f&>(camera_pos));
-  owlRayGenSet3f    (rayGen,"camera.dir_00",reinterpret_cast<const owl3f&>(camera_d00));
-  owlRayGenSet3f    (rayGen,"camera.dir_du",reinterpret_cast<const owl3f&>(camera_ddu));
-  owlRayGenSet3f    (rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(camera_ddv));
+  owlRayGenSet3f    (rayGen,"camera.origin",   reinterpret_cast<const owl3f&>(origin));
+  owlRayGenSet3f    (rayGen,"camera.lower_left_corner",reinterpret_cast<const owl3f&>(lower_left_corner));
+  owlRayGenSet3f    (rayGen,"camera.horizontal",reinterpret_cast<const owl3f&>(horizontal));
+  owlRayGenSet3f    (rayGen,"camera.vertical",reinterpret_cast<const owl3f&>(vertical));
 
   // ##################################################################
   // build *SBT* required to trace the groups
