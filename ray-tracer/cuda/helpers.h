@@ -87,15 +87,8 @@ inline __device__ double schlickReflectance(const double cos, const double ior) 
     r0 = r0 * r0;
     return r0 + (1. - r0) * pow(1. - cos, 5);
 }
-/*
-fn refract(uv: &Self, n: &Self, etai_over_etat: f64) -> Self {
-    let cos_theta = f64::min((-uv).dot(n), 1.);
-    let r_out_perp = etai_over_etat * (uv + cos_theta * n);
-    let r_out_parallel = -f64::sqrt(f64::abs(1. - r_out_perp.norm_squared())) * n;
-    r_out_perp + r_out_parallel
-}
-*/
-inline __device__ owl::vec3f refract(owl::vec3f u, owl::vec3f v, float ratio) {
+
+inline __device__ owl::vec3f refract(const owl::vec3f &u, const owl::vec3f &v, const float ratio) {
     const auto cos_theta = min(dot(-u, v), 1.f);
     const auto r_out_perp = ratio * (u + cos_theta * v);
     const auto r_out_parallel = -sqrt(abs(1.f - dot(r_out_perp, r_out_perp))) * v;
@@ -114,7 +107,7 @@ inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& se
 
     const vec3f normal = getPrimitiveNormal(self);
     // if the dot is positive, we're hitting the triangle's from behind
-    const double refraction_ratio = (dot(rayDir, normal) > 0)
+    const double refraction_ratio = (dot(rayDir, normal) > 0.)
                                         ? 1 / material.refraction_idx
                                         : material.refraction_idx;
 

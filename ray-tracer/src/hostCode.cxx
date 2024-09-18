@@ -100,14 +100,6 @@ int main(int ac, char **av)
 
   for (int meshID=0; meshID<numMeshes; meshID++) {
     auto [vertices, indices, material] = world->meshes[meshID];
-    std::cout << "ID: " << meshID << " | mat: " << material->albedo << '\n';
-    for (const auto & v : vertices)
-      std::cout << "v " << v << '\n';
-
-    for (const auto & i : indices)
-      std::cout << "v " << i << '\n';
-
-
     std::vector mats_vec = { *material };
 
     OWLBuffer vertexBuffer
