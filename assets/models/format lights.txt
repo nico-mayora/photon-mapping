@@ -1,0 +1,8 @@
+One light source per line:
+x y z r g b power
+x y z -> position (float)
+r g b -> colour (int in 0..255)
+power -> power in watts (float)
+
+Example:
+-0.455316 21.3249 -0.247803 255 255 255 20000.00

@@ -70,7 +70,6 @@ enum RayEvent {
 
 struct PerRayData {
     Random random;
-    int bounces_ramaining;
 
     owl::vec3f colour;
     RayEvent event;

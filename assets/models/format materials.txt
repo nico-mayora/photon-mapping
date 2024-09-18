@@ -1,0 +1,14 @@
+material_id specularity refraction_index
+material_id -> name of the material (string)
+specularity -> float 0..1 [0: fuzzy, 1: perfect mirror]
+refraction_index -> float how much light is distorted
+
+we currently only support ONE of the two.
+if both are set, specularity takes precedence.
+
+to set material_id, load the model into blender and set that name as the material's name.
+
+Example:
+mirror 1.0 0.0
+glass 0.0 1.0
+

@@ -21,7 +21,7 @@
 
 #define MAX_RAY_BOUNCES 30
 #define SAMPLES_PER_PIXEL 250
-#define EPS 1e-3f
+
 
 using namespace owl;
 
@@ -70,7 +70,6 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
                   + screen.u * self.camera.dir_du
                   + screen.v * self.camera.dir_dv);
 
-    prd.bounces_ramaining = MAX_RAY_BOUNCES;
     const auto colour = tracePath(self, ray, prd);
 
     final_colour += colour;
@@ -88,38 +87,26 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
   auto &prd = owl::getPRD<PerRayData>();
   const auto self = owl::getProgramData<TrianglesGeomData>();
-
-  // compute normal:
-  const int   primID = optixGetPrimitiveIndex();
-  const vec3i index  = self.index[primID];
-  const vec3f &A     = self.vertex[index.x];
-  const vec3f &B     = self.vertex[index.y];
-  const vec3f &C     = self.vertex[index.z];
-  vec3f Ng     = normalize(cross(B-A,C-A));
-
-  // scatter ray:
-  const vec3f rayDir = optixGetWorldRayDirection();
-  const vec3f rayOrg = optixGetWorldRayOrigin();
-
-  if (dot(Ng,rayDir)  > 0.f) // If both dir and normal have the same direction...
-    Ng = -Ng; // ...flip normal...
-  Ng = normalize(Ng); // ...and renormalise just in case.
-
-  auto scatter_direction = Ng + normalize(randomPointInUnitSphere(prd.random));
-
-  if (dot(scatter_direction, scatter_direction) < EPS) {
-    scatter_direction = Ng;
-  }
-
-  prd.scattered.s_direction = scatter_direction;
-  const auto tmax = optixGetRayTmax();
-
-  prd.scattered.s_origin = rayOrg + tmax * rayDir;
-
   const auto &material = *self.material;
 
-  prd.event = Scattered;
-  prd.colour = material.albedo;
+  switch (material.surface_type) {
+    case LAMBERTIAN: {
+      scatterLambertian(prd, self);
+      break;
+    }
+    case SPECULAR: {
+      scatterSpecular(prd, self);
+      break;
+    }
+    case GLASS: {
+      scatterGlass(prd, self);
+      break;
+    }
+    default: {
+      scatterLambertian(prd, self);
+      break;
+    }
+  }
 }
 
 OPTIX_MISS_PROGRAM(miss)()
