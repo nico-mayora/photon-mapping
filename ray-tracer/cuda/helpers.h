@@ -82,17 +82,27 @@ inline __device__ void scatterSpecular(PerRayData& prd, const TrianglesGeomData&
     }
 }
 
-inline __device__ double schlickReflectance(const double cos, const double ior) {
-    auto r0 = (1. - ior) / (1. + ior);
+inline __device__ float schlickReflectance(const float cos, const float ior) {
+    float r0 = (1.f - ior) / (1. + ior);
     r0 = r0 * r0;
     return r0 + (1. - r0) * pow(1. - cos, 5);
 }
 
-inline __device__ owl::vec3f refract(const owl::vec3f &u, const owl::vec3f &v, const float ratio) {
-    const auto cos_theta = min(dot(-u, v), 1.f);
-    const auto r_out_perp = ratio * (u + cos_theta * v);
-    const auto r_out_parallel = -sqrt(abs(1.f - dot(r_out_perp, r_out_perp))) * v;
-    return r_out_perp + r_out_parallel;
+inline __device__
+bool refract(const owl::vec3f& v,
+             const owl::vec3f& n,
+             const float ni_over_nt,
+             owl::vec3f &refracted)
+{
+    const owl::vec3f uv = normalize(v);
+    const float dt = dot(uv, n);
+    const float discriminant = 1.0f - ni_over_nt * ni_over_nt*(1 - dt * dt);
+    if (discriminant > 0.f) {
+        refracted = ni_over_nt * (uv - n * dt) - n * sqrtf(discriminant);
+        return true;
+    }
+
+    return false;
 }
 
 inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& self) {
@@ -101,34 +111,38 @@ inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& se
     const vec3f rayDir = normalize(static_cast<vec3f>(optixGetWorldRayDirection()));
     const vec3f rayOrg = optixGetWorldRayOrigin();
     const auto tmax = optixGetRayTmax();
-
-    const auto unit_dir = normalize(rayDir);
     const auto material = *self.material;
-
     vec3f normal = getPrimitiveNormal(self);
-    vec3f incident_normal = normal;
 
-    double refraction_ratio = material.refraction_idx;
-    // if the dot is positive, we're hitting the triangle's from behind
-    if (dot(rayDir, normal) > 0.) {
-        refraction_ratio = 1. / material.refraction_idx;
-        incident_normal = -normal;
+    vec3f outward_normal;
+    vec3f reflected = reflect(rayDir, normal);
+    float ni_over_nt;
+    prd.colour = vec3f(1.f, 1.f, 1.f);
+    vec3f refracted;
+    float reflect_prob;
+    float cosine;
+
+    if (dot(rayDir, normal) > 0.f) {
+        outward_normal = -normal;
+        ni_over_nt = material.refraction_idx;
+        cosine = dot(rayDir, normal);
+        cosine = sqrtf(1.f - material.refraction_idx*material.refraction_idx*(1.f-cosine*cosine));
     }
-
-    const auto cos_theta = min(dot(-unit_dir, normal), 1.);
-    const auto sin_theta = sqrt(1. - cos_theta * cos_theta);
-
-    const auto cannot_refract = refraction_ratio * sin_theta > 1.;
-
-    vec3f direction;
-    if (cannot_refract || schlickReflectance(cos_theta, refraction_ratio) > prd.random()) {
-        direction = reflect(unit_dir, incident_normal);
-    } else {
-        direction = refract(unit_dir, incident_normal, refraction_ratio);
+    else {
+        outward_normal = normal;
+        ni_over_nt = 1.0 / material.refraction_idx;
+        cosine = -dot(rayDir, normal);// / vec3f(dir).length();
     }
+    if (refract(rayDir, outward_normal, ni_over_nt, refracted))
+        reflect_prob = schlickReflectance(cosine, material.refraction_idx);
+    else
+        reflect_prob = 1.f;
+
+    prd.scattered.s_origin = rayOrg + tmax * rayDir;
+    if (prd.random() < reflect_prob)
+        prd.scattered.s_direction = reflected;
+    else
+        prd.scattered.s_direction = refracted;
 
     prd.event = Scattered;
-    prd.scattered.s_origin = rayOrg + tmax * unit_dir;
-    prd.scattered.s_direction = direction;
-    prd.colour = vec3f(1.f);
 }
