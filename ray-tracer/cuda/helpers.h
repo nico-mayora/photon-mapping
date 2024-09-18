@@ -98,18 +98,22 @@ inline __device__ owl::vec3f refract(const owl::vec3f &u, const owl::vec3f &v, c
 inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& self) {
     using namespace owl;
 
-    const vec3f rayDir = optixGetWorldRayDirection();
+    const vec3f rayDir = normalize(static_cast<vec3f>(optixGetWorldRayDirection()));
     const vec3f rayOrg = optixGetWorldRayOrigin();
     const auto tmax = optixGetRayTmax();
 
     const auto unit_dir = normalize(rayDir);
     const auto material = *self.material;
 
-    const vec3f normal = getPrimitiveNormal(self);
+    vec3f normal = getPrimitiveNormal(self);
+    vec3f incident_normal = normal;
+
+    double refraction_ratio = material.refraction_idx;
     // if the dot is positive, we're hitting the triangle's from behind
-    const double refraction_ratio = (dot(rayDir, normal) > 0.)
-                                        ? 1 / material.refraction_idx
-                                        : material.refraction_idx;
+    if (dot(rayDir, normal) > 0.) {
+        refraction_ratio = 1. / material.refraction_idx;
+        incident_normal = -normal;
+    }
 
     const auto cos_theta = min(dot(-unit_dir, normal), 1.);
     const auto sin_theta = sqrt(1. - cos_theta * cos_theta);
@@ -118,13 +122,13 @@ inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& se
 
     vec3f direction;
     if (cannot_refract || schlickReflectance(cos_theta, refraction_ratio) > prd.random()) {
-        direction = reflect(unit_dir, normal);
+        direction = reflect(unit_dir, incident_normal);
     } else {
-        direction = refract(unit_dir, normal, refraction_ratio);
+        direction = refract(unit_dir, incident_normal, refraction_ratio);
     }
 
     prd.event = Scattered;
-    prd.scattered.s_origin = rayOrg + tmax * rayDir;
+    prd.scattered.s_origin = rayOrg + tmax * unit_dir;
     prd.scattered.s_direction = direction;
-    prd.colour = material.albedo;
+    prd.colour = vec3f(1.f);
 }

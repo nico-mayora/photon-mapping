@@ -51,7 +51,7 @@ int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/cornell-box/cornell-box.glb";
+  std::string path = "../assets/models/cornell-box/cornell-box2.glb";
   auto world =  assets::import_scene(ai_importer, path);
 
   LOG_OK("Loaded world.");
