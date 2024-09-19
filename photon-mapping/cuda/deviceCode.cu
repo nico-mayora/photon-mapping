@@ -15,63 +15,67 @@
 // ======================================================================== //
 
 #include "deviceCode.h"
+#include "helpers.h"
+
 #include <optix_device.h>
+
+#define MAX_RAY_BOUNCES 100
+#define EPS 0.1
+
+using namespace owl;
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
   const RayGenData &self = owl::getProgramData<RayGenData>();
   const vec2i pixelID = owl::getLaunchIndex();
-  if (pixelID == owl::vec2i(0)) {
-    printf("%sHello OptiX From your First RayGen Program%s\n",
-           OWL_TERMINAL_CYAN,
-           OWL_TERMINAL_DEFAULT);
+
+  PerRayData prd;
+  prd.random.init(pixelID.x,pixelID.y);
+
+  LightSource lightSource;
+  auto lightSources = self.lightSources;
+  int photon_id = pixelID.x;
+  for (int i = 0; i < self.lightsNum; i++) {
+    lightSource = lightSources[i];
+    if (photon_id < lightSource.num_photons) {
+      break;
+    } else {
+      photon_id -= lightSource.num_photons;
+    }
   }
 
-  const vec2f screen = (vec2f(pixelID)+vec2f(.5f)) / vec2f(self.fbSize);
-  owl::Ray ray;
-  ray.origin
-    = self.camera.pos;
-  ray.direction
-    = normalize(self.camera.dir_00
-                + screen.u * self.camera.dir_du
-                + screen.v * self.camera.dir_dv);
+  Ray ray;
+  ray.origin = lightSource.pos;
+  ray.direction = normalize(randomPointInUnitSphere(prd.random));
 
-  vec3f color;
-  owl::traceRay(/*accel to trace against*/self.world,
-                /*the ray to trace*/ray,
-                /*prd*/color);
+  Photon out_photon;
+  out_photon.is_alive = true;
+  owl::traceRay(self.world, ray, out_photon);
 
-  const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
-  self.fbPtr[fbOfs]
-    = owl::make_rgba(color);
+  const int fbOfs = pixelID.x;
+  self.fbPtr[fbOfs] = out_photon;
 }
 
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
-  vec3f &prd = owl::getPRD<vec3f>();
+  auto &prd = owl::getPRD<Photon>();
 
   const TrianglesGeomData &self = owl::getProgramData<TrianglesGeomData>();
-
-  // compute normal:
-  const int   primID = optixGetPrimitiveIndex();
-  const vec3i index  = self.index[primID];
-  const vec3f &A     = self.vertex[index.x];
-  const vec3f &B     = self.vertex[index.y];
-  const vec3f &C     = self.vertex[index.z];
-  const vec3f Ng     = normalize(cross(B-A,C-A));
-
   const vec3f rayDir = optixGetWorldRayDirection();
-  prd = (.2f + .8f*fabs(dot(rayDir,Ng)))*self.color;
+  const vec3f rayOrg = optixGetWorldRayOrigin();
+  const auto tmax = optixGetRayTmax();
+  const auto &material = *self.material;
+
+  prd.pos = rayOrg + (tmax * rayDir);
+
+  prd.dir = normalize(rayDir);
+  prd.color = material.albedo;
+  prd.power = 1.f;
 }
 
 OPTIX_MISS_PROGRAM(miss)()
 {
-  const vec2i pixelID = owl::getLaunchIndex();
-
-  const MissProgData &self = owl::getProgramData<MissProgData>();
-
-  vec3f &prd = owl::getPRD<vec3f>();
-  int pattern = (pixelID.x / 8) ^ (pixelID.y/8);
-  prd = (pattern&1) ? self.color1 : self.color0;
+  auto &prd = owl::getPRD<Photon>();
+  prd.is_alive = false;
 }
 

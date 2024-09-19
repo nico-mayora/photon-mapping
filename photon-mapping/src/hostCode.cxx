@@ -17,13 +17,19 @@
 // This program sets up a single geometric object, a mesh for a cube, and
 // its acceleration structure, then ray traces it.
 
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 // public owl node-graph API
 #include "owl/owl.h"
 // our device-side data structures
 #include "../cuda/deviceCode.h"
 // external helper stuff for image output
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "assetImporter.h"
+#include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
+#include "assimp/Importer.hpp"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -34,42 +40,51 @@
   std::cout << "#owl.sample(main): " << message << std::endl;   \
   std::cout << OWL_TERMINAL_DEFAULT;
 
-const int NUM_VERTICES = 8;
-vec3f vertices[NUM_VERTICES] =
-  {
-    { -1.f,-1.f,-1.f },
-    { +1.f,-1.f,-1.f },
-    { -1.f,+1.f,-1.f },
-    { +1.f,+1.f,-1.f },
-    { -1.f,-1.f,+1.f },
-    { +1.f,-1.f,+1.f },
-    { -1.f,+1.f,+1.f },
-    { +1.f,+1.f,+1.f }
-  };
-
-const int NUM_INDICES = 12;
-vec3i indices[NUM_INDICES] =
-  {
-    { 0,1,3 }, { 2,3,0 },
-    { 5,7,6 }, { 5,6,4 },
-    { 0,4,5 }, { 0,5,1 },
-    { 2,3,7 }, { 2,7,6 },
-    { 1,5,7 }, { 1,7,3 },
-    { 4,0,2 }, { 4,2,6 }
-  };
-
-const char *outFileName = "s01-simpleTriangles.png";
-const vec2i fbSize(800,600);
-const vec3f lookFrom(-4.f,-3.f,-2.f);
-const vec3f lookAt(0.f,0.f,0.f);
-const vec3f lookUp(0.f,1.f,0.f);
-const float cosFovy = 0.66f;
+/* Image configuration */
+auto outFileName = "result.png";
+constexpr int totalPhotons = 200;
 
 extern "C" char deviceCode_ptx[];
 
+void writeAlivePhotons(const Photon* photons, const std::string& filename) {
+  std::ofstream outFile(filename);
+
+  if (!outFile.is_open()) {
+    std::cerr << "Error opening file: " << filename << std::endl;
+    return;
+  }
+
+  outFile << std::fixed << std::setprecision(6);
+
+  for (int i = 0; i < totalPhotons; i++) {
+    auto photon = photons[i];
+    if (photon.is_alive) {
+      outFile << photon.pos.x << " " << photon.pos.y << " " << photon.pos.z << " "
+              << photon.dir.x << " " << photon.dir.y << " " << photon.dir.z << " "
+              << photon.color.x << " " << photon.color.y << " " << photon.color.z << "\n";
+    }
+  }
+
+  outFile.close();
+}
+
 int main(int ac, char **av)
 {
-  LOG("owl::ng example '" << av[0] << "' starting up");
+  LOG("Starting up...");
+  auto *ai_importer = new Assimp::Importer;
+  std::string path = "../assets/models/simpler-cube/cube.glb";
+  auto world =  assets::import_scene(ai_importer, path);
+  double totalPower = 0;
+  for (const auto & light : world->light_sources) {
+    totalPower += light.power;
+  }
+  for (auto & light : world->light_sources) {
+    light.num_photons = static_cast<int>(light.power / totalPower * totalPhotons);
+  }
+
+
+
+  LOG_OK("Loaded world.");
 
   // create a context on the first device:
   OWLContext context = owlContextCreate(nullptr,1);
@@ -82,16 +97,19 @@ int main(int ac, char **av)
   // -------------------------------------------------------
   // declare geometry type
   // -------------------------------------------------------
+
   OWLVarDecl trianglesGeomVars[] = {
     { "index",  OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,index)},
     { "vertex", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,vertex)},
-    { "color",  OWL_FLOAT3, OWL_OFFSETOF(TrianglesGeomData,color)}
+    { "material", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,material)},
+    { nullptr /* Sentinel to mark end-of-list */}
   };
+
   OWLGeomType trianglesGeomType
     = owlGeomTypeCreate(context,
                         OWL_TRIANGLES,
                         sizeof(TrianglesGeomData),
-                        trianglesGeomVars,3);
+                        trianglesGeomVars,-1);
   owlGeomTypeSetClosestHit(trianglesGeomType,0,
                            module,"TriangleMesh");
 
@@ -104,34 +122,56 @@ int main(int ac, char **av)
   // ------------------------------------------------------------------
   // triangle mesh
   // ------------------------------------------------------------------
-  OWLBuffer vertexBuffer
-    = owlDeviceBufferCreate(context,OWL_FLOAT3,NUM_VERTICES,vertices);
-  OWLBuffer indexBuffer
-    = owlDeviceBufferCreate(context,OWL_INT3,NUM_INDICES,indices);
   OWLBuffer frameBuffer
-    = owlHostPinnedBufferCreate(context,OWL_INT,fbSize.x*fbSize.y);
+  = owlHostPinnedBufferCreate(context,OWL_USER_TYPE(Photon),totalPhotons);
 
-  OWLGeom trianglesGeom
-    = owlGeomCreate(context,trianglesGeomType);
+  std::vector<OWLGeom> geoms;
+  const int numMeshes = static_cast<int>(world->meshes.size());
 
-  owlTrianglesSetVertices(trianglesGeom,vertexBuffer,
-                          NUM_VERTICES,sizeof(vec3f),0);
-  owlTrianglesSetIndices(trianglesGeom,indexBuffer,
-                         NUM_INDICES,sizeof(vec3i),0);
+  for (int meshID=0; meshID<numMeshes; meshID++) {
+    auto [vertices, indices, material] = world->meshes[meshID];
+    std::cout << "ID: " << meshID << " | mat: " << material->albedo << '\n';
+    for (const auto & v : vertices)
+      std::cout << "v " << v << '\n';
 
-  owlGeomSetBuffer(trianglesGeom,"vertex",vertexBuffer);
-  owlGeomSetBuffer(trianglesGeom,"index",indexBuffer);
-  owlGeomSet3f(trianglesGeom,"color",owl3f{0,0,1});
+    for (const auto & i : indices)
+      std::cout << "v " << i << '\n';
+
+
+    std::vector mats_vec = { *material };
+
+    OWLBuffer vertexBuffer
+      = owlDeviceBufferCreate(context,OWL_FLOAT3,vertices.size(), vertices.data());
+    OWLBuffer indexBuffer
+      = owlDeviceBufferCreate(context,OWL_INT3,indices.size(), indices.data());
+    OWLBuffer materialBuffer
+      = owlDeviceBufferCreate(context,OWL_USER_TYPE(Material),1, mats_vec.data());
+
+    OWLGeom trianglesGeom
+      = owlGeomCreate(context,trianglesGeomType);
+
+    owlTrianglesSetVertices(trianglesGeom,vertexBuffer,
+                            vertices.size(),sizeof(owl::vec3f),0);
+    owlTrianglesSetIndices(trianglesGeom,indexBuffer,
+                           indices.size(),sizeof(owl::vec3i),0);
+
+    owlGeomSetBuffer(trianglesGeom,"vertex",vertexBuffer);
+    owlGeomSetBuffer(trianglesGeom,"index",indexBuffer);
+    owlGeomSetBuffer(trianglesGeom,"material", materialBuffer);
+
+    geoms.push_back(trianglesGeom);
+  }
 
   // ------------------------------------------------------------------
   // the group/accel for that mesh
   // ------------------------------------------------------------------
   OWLGroup trianglesGroup
-    = owlTrianglesGeomGroupCreate(context,1,&trianglesGeom);
+    = owlTrianglesGeomGroupCreate(context,geoms.size(),geoms.data());
   owlGroupBuildAccel(trianglesGroup);
-  OWLGroup world
-    = owlInstanceGroupCreate(context,1,&trianglesGroup);
-  owlGroupBuildAccel(world);
+  OWLGroup owl_world
+    = owlInstanceGroupCreate(context,1);
+  owlInstanceGroupSetChild(owl_world,0,trianglesGroup);
+  owlGroupBuildAccel(owl_world);
 
 
   // ##################################################################
@@ -141,61 +181,49 @@ int main(int ac, char **av)
   // -------------------------------------------------------
   // set up miss prog
   // -------------------------------------------------------
+  owl::vec3f sky_colour = { 42./255., 169./255., 238./255. };
   OWLVarDecl missProgVars[]
     = {
-    { "color0", OWL_FLOAT3, OWL_OFFSETOF(MissProgData,color0)},
-    { "color1", OWL_FLOAT3, OWL_OFFSETOF(MissProgData,color1)},
+    { "sky_color", OWL_FLOAT3, OWL_OFFSETOF(MissProgData, sky_color)},
     { /* sentinel to mark end of list */ }
   };
+
   // ----------- create object  ----------------------------
   OWLMissProg missProg
-    = owlMissProgCreate(context,module,"miss",sizeof(MissProgData),
-                        missProgVars,-1);
+          = owlMissProgCreate(context,module,"miss",sizeof(MissProgData),
+                              missProgVars,-1);
 
   // ----------- set variables  ----------------------------
-  owlMissProgSet3f(missProg,"color0",owl3f{.8f,0.f,0.f});
-  owlMissProgSet3f(missProg,"color1",owl3f{.8f,.8f,.8f});
+  owlMissProgSet3f(missProg,"sky_color", owl3f {42./255., 169./255., 238./255.});
 
   // -------------------------------------------------------
   // set up ray gen program
   // -------------------------------------------------------
   OWLVarDecl rayGenVars[] = {
-    { "fbPtr",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
-    { "fbSize",        OWL_INT2,   OWL_OFFSETOF(RayGenData,fbSize)},
-    { "world",         OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
-    { "camera.pos",    OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.pos)},
-    { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_00)},
-    { "camera.dir_du", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_du)},
-    { "camera.dir_dv", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_dv)},
-    { /* sentinel to mark end of list */ }
+          { "fbPtr",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
+          { "fbSize",        OWL_INT,   OWL_OFFSETOF(RayGenData,fbSize)},
+          { "world",         OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
+          { "lightsNum",     OWL_INT,   OWL_OFFSETOF(RayGenData,lightsNum)},
+          { "lightSources",        OWL_BUFPTR,  OWL_OFFSETOF(RayGenData,lightSources)},
+          { /* sentinel to mark end of list */ }
   };
 
   // ----------- create object  ----------------------------
   OWLRayGen rayGen
-    = owlRayGenCreate(context,module,"simpleRayGen",
-                      sizeof(RayGenData),
-                      rayGenVars,-1);
+          = owlRayGenCreate(context,module,"simpleRayGen",
+                            sizeof(RayGenData),
+                            rayGenVars,-1);
 
   // ----------- compute variable values  ------------------
-  vec3f camera_pos = lookFrom;
-  vec3f camera_d00
-    = normalize(lookAt-lookFrom);
-  float aspect = fbSize.x / float(fbSize.y);
-  vec3f camera_ddu
-    = cosFovy * aspect * normalize(cross(camera_d00,lookUp));
-  vec3f camera_ddv
-    = cosFovy * normalize(cross(camera_ddu,camera_d00));
-  camera_d00 -= 0.5f * camera_ddu;
-  camera_d00 -= 0.5f * camera_ddv;
+  int numLights = world->light_sources.size();
+  auto lightSourcesBuffer = owlDeviceBufferCreate(context,OWL_USER_TYPE(LightSource),numLights, world->light_sources.data());
 
   // ----------- set variables  ----------------------------
   owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
-  owlRayGenSet2i    (rayGen,"fbSize",       (const owl2i&)fbSize);
-  owlRayGenSetGroup (rayGen,"world",        world);
-  owlRayGenSet3f    (rayGen,"camera.pos",   (const owl3f&)camera_pos);
-  owlRayGenSet3f    (rayGen,"camera.dir_00",(const owl3f&)camera_d00);
-  owlRayGenSet3f    (rayGen,"camera.dir_du",(const owl3f&)camera_ddu);
-  owlRayGenSet3f    (rayGen,"camera.dir_dv",(const owl3f&)camera_ddv);
+  owlRayGenSet1i    (rayGen,"fbSize",       totalPhotons);
+  owlRayGenSetGroup (rayGen,"world",        owl_world);
+  owlRayGenSet1i    (rayGen,"lightsNum",    numLights);
+  owlRayGenSetBuffer(rayGen,"lightSources", lightSourcesBuffer);
 
   // ##################################################################
   // build *SBT* required to trace the groups
@@ -209,14 +237,15 @@ int main(int ac, char **av)
   // ##################################################################
 
   LOG("launching ...");
-  owlRayGenLaunch2D(rayGen,fbSize.x,fbSize.y);
+  owlRayGenLaunch2D(rayGen,totalPhotons,1);
 
   LOG("done with launch, writing picture ...");
   // for host pinned mem it doesn't matter which device we query...
-  auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(frameBuffer, 0));
+  auto *fb = static_cast<const Photon*>(owlBufferGetPointer(frameBuffer, 0));
   assert(fb);
-  stbi_write_png(outFileName,fbSize.x,fbSize.y,4,
-                 fb,fbSize.x*sizeof(uint32_t));
+
+  writeAlivePhotons(fb, "photons.txt");
+
   LOG_OK("written rendered frame buffer to file "<<outFileName);
   // ##################################################################
   // and finally, clean up

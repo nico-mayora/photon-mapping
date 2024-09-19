@@ -18,39 +18,92 @@
 
 #include <owl/owl.h>
 #include <owl/common/math/vec.h>
+#include <owl/common/math/random.h>
 
-using namespace owl;
+/* We store the MaterialType to correctly pick the BSDF when reflecting incident rays. */
+enum MaterialType {
+    LAMBERTIAN,
+    SPECULAR,
+    GLASS,
+};
+
+struct Material {
+    MaterialType surface_type;
+    owl::vec3f albedo;
+    double specular_roughness;
+    double refraction_idx;
+};
+
+enum LightType {
+    POINT_LIGHT,
+    SQUARE_LIGHT,
+};
+
+struct LightSource {
+    LightType source_type;
+    owl::vec3f pos;
+    double power;
+    owl::vec3f rgb;
+    /* for emission surface */
+    owl::vec3f normal;
+    double side_length;
+
+    /* calculated values */
+    int num_photons;
+};
+
+struct Photon {
+    owl::vec3f pos;
+    owl::vec3f dir;
+    int power;
+    owl::vec3f color;
+    bool is_alive;
+};
 
 /* variables for the triangle mesh geometry */
 struct TrianglesGeomData
 {
-    /*! base color we use for the entire mesh */
-    vec3f color;
+    /*! material we use for the entire mesh */
+    Material *material;
     /*! array/buffer of vertex indices */
-    vec3i *index;
+    owl::vec3i *index;
     /*! array/buffer of vertex positions */
-    vec3f *vertex;
+    owl::vec3f *vertex;
 };
 
 /* variables for the ray generation program */
 struct RayGenData
 {
-    uint32_t *fbPtr;
-    vec2i  fbSize;
+    Photon *fbPtr;
+    int fbSize;
     OptixTraversableHandle world;
+    int lightsNum;
+    LightSource *lightSources;
+};
 
+typedef owl::LCG<> Random;
+
+enum RayEvent {
+    Scattered,
+    Absorbed,
+    Missed,
+};
+
+struct PerRayData {
+    Random random;
+    int bounces_ramaining;
+
+    owl::vec3f colour;
+    RayEvent event;
     struct {
-        vec3f pos;
-        vec3f dir_00;
-        vec3f dir_du;
-        vec3f dir_dv;
-    } camera;
+        owl::vec3f s_origin;
+        owl::vec3f s_direction;
+    } scattered;
 };
 
 /* variables for the miss program */
 struct MissProgData
 {
-    vec3f  color0;
-    vec3f  color1;
+    owl::vec3f  sky_color;
 };
 
