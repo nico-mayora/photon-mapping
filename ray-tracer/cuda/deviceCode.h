@@ -60,6 +60,14 @@ struct TrianglesGeomData
     owl::vec3f *vertex;
 };
 
+struct Photon {
+    owl::vec3f pos;
+    owl::vec3f dir;
+    int power;
+    owl::vec3f color;
+    bool is_alive;
+};
+
 /* variables for the ray generation program */
 struct RayGenData
 {

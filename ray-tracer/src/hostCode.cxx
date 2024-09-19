@@ -17,6 +17,10 @@
 // This program sets up a single geometric object, a mesh for a cube, and
 // its acceleration structure, then ray traces it.
 
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
 // public owl node-graph API
 #include "owl/owl.h"
 // our device-side data structures
@@ -47,14 +51,37 @@ constexpr float cosFovy = 0.66f;
 
 extern "C" char deviceCode_ptx[];
 
+std::vector<Photon> readPhotonsFromFile(const std::string& filename) {
+  std::ifstream file(filename);
+  std::vector<Photon> photons;
+
+  if (!file.is_open()) {
+    std::cerr << "Error opening file: " << filename << std::endl;
+    return photons;
+  }
+
+  Photon photon;
+  while (file >> photon.pos.x >> photon.pos.y >> photon.pos.z
+              >> photon.dir.x >> photon.dir.y >> photon.dir.z
+              >> photon.color.x >> photon.color.y >> photon.color.z) {
+    photons.push_back(photon);
+  }
+
+  file.close();
+  return photons;
+}
+
 int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
   std::string path = "../assets/models/dragon/dragon-box.glb";
   auto world =  assets::import_scene(ai_importer, path);
-
+  
   LOG_OK("Loaded world.");
+
+  auto photons = readPhotonsFromFile("photons.txt");
+  LOG_OK("Loaded photons.");
 
   // create a context on the first device:
   OWLContext context = owlContextCreate(nullptr,1);
