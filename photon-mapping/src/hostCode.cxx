@@ -17,6 +17,9 @@
 // This program sets up a single geometric object, a mesh for a cube, and
 // its acceleration structure, then ray traces it.
 
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 // public owl node-graph API
 #include "owl/owl.h"
 // our device-side data structures
@@ -39,20 +42,47 @@
 
 /* Image configuration */
 auto outFileName = "result.png";
-const owl::vec2i fbSize(800,600);
-const owl::vec3f lookFrom(80.f,30.f,0.f);
-const owl::vec3f lookAt(10.f,20.f,0.f);
-const owl::vec3f lookUp(0.f,-1.f,0.f);
-constexpr float cosFovy = 0.66f;
+constexpr int totalPhotons = 200;
 
 extern "C" char deviceCode_ptx[];
+
+void writeAlivePhotons(const Photon* photons, const std::string& filename) {
+  std::ofstream outFile(filename);
+
+  if (!outFile.is_open()) {
+    std::cerr << "Error opening file: " << filename << std::endl;
+    return;
+  }
+
+  outFile << std::fixed << std::setprecision(6);
+
+  for (int i = 0; i < totalPhotons; i++) {
+    auto photon = photons[i];
+    if (photon.is_alive) {
+      outFile << photon.pos.x << " " << photon.pos.y << " " << photon.pos.z << " "
+              << photon.dir.x << " " << photon.dir.y << " " << photon.dir.z << " "
+              << photon.color.x << " " << photon.color.y << " " << photon.color.z << "\n";
+    }
+  }
+
+  outFile.close();
+}
 
 int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/cornell-box/cornell-box.glb";
+  std::string path = "../assets/models/simpler-cube/cube.glb";
   auto world =  assets::import_scene(ai_importer, path);
+  double totalPower = 0;
+  for (const auto & light : world->light_sources) {
+    totalPower += light.power;
+  }
+  for (auto & light : world->light_sources) {
+    light.num_photons = static_cast<int>(light.power / totalPower * totalPhotons);
+  }
+
+
 
   LOG_OK("Loaded world.");
 
@@ -93,7 +123,7 @@ int main(int ac, char **av)
   // triangle mesh
   // ------------------------------------------------------------------
   OWLBuffer frameBuffer
-  = owlHostPinnedBufferCreate(context,OWL_INT,fbSize.x*fbSize.y);
+  = owlHostPinnedBufferCreate(context,OWL_USER_TYPE(Photon),totalPhotons);
 
   std::vector<OWLGeom> geoms;
   const int numMeshes = static_cast<int>(world->meshes.size());
@@ -160,8 +190,8 @@ int main(int ac, char **av)
 
   // ----------- create object  ----------------------------
   OWLMissProg missProg
-    = owlMissProgCreate(context,module,"miss",sizeof(MissProgData),
-                        missProgVars,-1);
+          = owlMissProgCreate(context,module,"miss",sizeof(MissProgData),
+                              missProgVars,-1);
 
   // ----------- set variables  ----------------------------
   owlMissProgSet3f(missProg,"sky_color", owl3f {42./255., 169./255., 238./255.});
@@ -170,42 +200,30 @@ int main(int ac, char **av)
   // set up ray gen program
   // -------------------------------------------------------
   OWLVarDecl rayGenVars[] = {
-    { "fbPtr",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
-    { "fbSize",        OWL_INT2,   OWL_OFFSETOF(RayGenData,fbSize)},
-    { "world",         OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
-    { "camera.pos",    OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.pos)},
-    { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_00)},
-    { "camera.dir_du", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_du)},
-    { "camera.dir_dv", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_dv)},
-    { /* sentinel to mark end of list */ }
+          { "fbPtr",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
+          { "fbSize",        OWL_INT,   OWL_OFFSETOF(RayGenData,fbSize)},
+          { "world",         OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
+          { "lightsNum",     OWL_INT,   OWL_OFFSETOF(RayGenData,lightsNum)},
+          { "lightSources",        OWL_BUFPTR,  OWL_OFFSETOF(RayGenData,lightSources)},
+          { /* sentinel to mark end of list */ }
   };
 
   // ----------- create object  ----------------------------
   OWLRayGen rayGen
-    = owlRayGenCreate(context,module,"simpleRayGen",
-                      sizeof(RayGenData),
-                      rayGenVars,-1);
+          = owlRayGenCreate(context,module,"simpleRayGen",
+                            sizeof(RayGenData),
+                            rayGenVars,-1);
 
   // ----------- compute variable values  ------------------
-  owl::vec3f camera_pos = lookFrom;
-  owl::vec3f camera_d00
-    = normalize(lookAt-lookFrom);
-  float aspect = fbSize.x / static_cast<float>(fbSize.y);
-  owl::vec3f camera_ddu
-    = cosFovy * aspect * normalize(cross(camera_d00,lookUp));
-  owl::vec3f camera_ddv
-    = cosFovy * normalize(cross(camera_ddu,camera_d00));
-  camera_d00 -= 0.5f * camera_ddu;
-  camera_d00 -= 0.5f * camera_ddv;
+  int numLights = world->light_sources.size();
+  auto lightSourcesBuffer = owlDeviceBufferCreate(context,OWL_USER_TYPE(LightSource),numLights, world->light_sources.data());
 
   // ----------- set variables  ----------------------------
   owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
-  owlRayGenSet2i    (rayGen,"fbSize",       reinterpret_cast<const owl2i&>(fbSize));
+  owlRayGenSet1i    (rayGen,"fbSize",       totalPhotons);
   owlRayGenSetGroup (rayGen,"world",        owl_world);
-  owlRayGenSet3f    (rayGen,"camera.pos",   reinterpret_cast<const owl3f&>(camera_pos));
-  owlRayGenSet3f    (rayGen,"camera.dir_00",reinterpret_cast<const owl3f&>(camera_d00));
-  owlRayGenSet3f    (rayGen,"camera.dir_du",reinterpret_cast<const owl3f&>(camera_ddu));
-  owlRayGenSet3f    (rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(camera_ddv));
+  owlRayGenSet1i    (rayGen,"lightsNum",    numLights);
+  owlRayGenSetBuffer(rayGen,"lightSources", lightSourcesBuffer);
 
   // ##################################################################
   // build *SBT* required to trace the groups
@@ -219,14 +237,15 @@ int main(int ac, char **av)
   // ##################################################################
 
   LOG("launching ...");
-  owlRayGenLaunch2D(rayGen,fbSize.x,fbSize.y);
+  owlRayGenLaunch2D(rayGen,totalPhotons,1);
 
   LOG("done with launch, writing picture ...");
   // for host pinned mem it doesn't matter which device we query...
-  auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(frameBuffer, 0));
+  auto *fb = static_cast<const Photon*>(owlBufferGetPointer(frameBuffer, 0));
   assert(fb);
-  stbi_write_png(outFileName,fbSize.x,fbSize.y,4,
-                 fb,fbSize.x*sizeof(uint32_t));
+
+  writeAlivePhotons(fb, "photons.txt");
+
   LOG_OK("written rendered frame buffer to file "<<outFileName);
   // ##################################################################
   // and finally, clean up
