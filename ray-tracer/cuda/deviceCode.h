@@ -34,6 +34,21 @@ struct Material {
     double refraction_idx;
 };
 
+enum LightType {
+    POINT_LIGHT,
+    SQUARE_LIGHT,
+};
+
+struct LightSource {
+    LightType source_type;
+    owl::vec3f pos;
+    double power;
+    owl::vec3f rgb;
+    /* for emission surface */
+    owl::vec3f normal;
+    double side_length;
+};
+
 /* variables for the triangle mesh geometry */
 struct TrianglesGeomData
 {
@@ -51,6 +66,9 @@ struct RayGenData
     uint32_t *fbPtr;
     owl::vec2i  fbSize;
     OptixTraversableHandle world;
+
+    LightSource* lights;
+    int numLights;
 
     struct {
         owl::vec3f pos;
@@ -76,6 +94,7 @@ struct PerRayData {
     struct {
         owl::vec3f s_origin;
         owl::vec3f s_direction;
+        owl::vec3f normal_at_hitpoint;
     } scattered;
 };
 

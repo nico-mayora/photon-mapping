@@ -51,7 +51,7 @@ int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/cornell-box/cornell-box2.glb";
+  std::string path = "../assets/models/dragon/dragon-box.glb";
   auto world =  assets::import_scene(ai_importer, path);
 
   LOG_OK("Loaded world.");
@@ -59,6 +59,7 @@ int main(int ac, char **av)
   // create a context on the first device:
   OWLContext context = owlContextCreate(nullptr,1);
   OWLModule module = owlModuleCreate(context, deviceCode_ptx);
+  owlContextSetRayTypeCount(context, 2);
 
   // ##################################################################
   // set up all the *GEOMETRY* graph we want to render
@@ -82,6 +83,8 @@ int main(int ac, char **av)
                         trianglesGeomVars,-1);
   owlGeomTypeSetClosestHit(trianglesGeomType,0,
                            module,"TriangleMesh");
+  owlGeomTypeSetClosestHit(trianglesGeomType,1,
+                         module,"shadow");
 
   // ##################################################################
   // set up all the *GEOMS* we want to run that code on
@@ -124,6 +127,9 @@ int main(int ac, char **av)
     geoms.push_back(trianglesGeom);
   }
 
+  OWLBuffer light_sources_buffer =  owlDeviceBufferCreate(context,
+    OWL_USER_TYPE(LightSource),world->light_sources.size(), world->light_sources.data());
+
   // ------------------------------------------------------------------
   // the group/accel for that mesh
   // ------------------------------------------------------------------
@@ -139,6 +145,7 @@ int main(int ac, char **av)
   // ##################################################################
   // set miss and raygen program required for SBT
   // ##################################################################
+  LOG("Setting up prog ...");
 
   // -------------------------------------------------------
   // set up miss prog
@@ -154,6 +161,9 @@ int main(int ac, char **av)
   OWLMissProg missProg
     = owlMissProgCreate(context,module,"miss",sizeof(MissProgData),
                         missProgVars,-1);
+  OWLMissProg missProgShadow
+  = owlMissProgCreate(context,module,"shadow",
+                      /* no sbt data: */0,nullptr,-1);
 
   // ----------- set variables  ----------------------------
   owlMissProgSet3f(missProg,"sky_color", owl3f {42./255., 169./255., 238./255.});
@@ -162,15 +172,18 @@ int main(int ac, char **av)
   // set up ray gen program
   // -------------------------------------------------------
   OWLVarDecl rayGenVars[] = {
-    { "fbPtr",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
-    { "fbSize",        OWL_INT2,   OWL_OFFSETOF(RayGenData,fbSize)},
-    { "world",         OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
-    { "camera.pos",    OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.pos)},
-    { "camera.dir_00", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_00)},
-    { "camera.dir_du", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_du)},
-    { "camera.dir_dv", OWL_FLOAT3, OWL_OFFSETOF(RayGenData,camera.dir_dv)},
+    { "fbPtr",         OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,fbPtr)},
+    { "fbSize",        OWL_INT2,        OWL_OFFSETOF(RayGenData,fbSize)},
+    { "world",         OWL_GROUP,       OWL_OFFSETOF(RayGenData,world)},
+    { "camera.pos",    OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.pos)},
+    { "camera.dir_00", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_00)},
+    { "camera.dir_du", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_du)},
+    { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
+    { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
+    { "numLights",     OWL_INT, OWL_OFFSETOF(RayGenData,numLights)},
     { /* sentinel to mark end of list */ }
   };
+
 
   // ----------- create object  ----------------------------
   OWLRayGen rayGen
@@ -189,6 +202,7 @@ int main(int ac, char **av)
     = cosFovy * normalize(cross(camera_ddu,camera_d00));
   camera_d00 -= 0.5f * camera_ddu;
   camera_d00 -= 0.5f * camera_ddv;
+  int num_lights = static_cast<int>(world->light_sources.size());
 
   // ----------- set variables  ----------------------------
   owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
@@ -198,6 +212,10 @@ int main(int ac, char **av)
   owlRayGenSet3f    (rayGen,"camera.dir_00",reinterpret_cast<const owl3f&>(camera_d00));
   owlRayGenSet3f    (rayGen,"camera.dir_du",reinterpret_cast<const owl3f&>(camera_ddu));
   owlRayGenSet3f    (rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(camera_ddv));
+  owlRayGenSetBuffer(rayGen,"lights",       light_sources_buffer);
+  owlRayGenSet1i    (rayGen,"numLights",    num_lights);
+
+  LOG("building sbt...");
 
   // ##################################################################
   // build *SBT* required to trace the groups

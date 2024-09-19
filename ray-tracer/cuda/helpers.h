@@ -5,6 +5,10 @@
 #define RANDVEC3F owl::vec3f(rnd(),rnd(),rnd())
 #define EPS 1e-3f
 
+inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
+    return owl::vec3f(owl::clamp(v.x, f), owl::clamp(v.y, f), owl::clamp(v.z, f));
+}
+
 inline __device__ owl::vec3f randomPointInUnitSphere(Random &rnd) {
     owl::vec3f p;
     do {
@@ -52,6 +56,7 @@ inline __device__ void scatterLambertian(PerRayData& prd, const TrianglesGeomDat
     const auto tmax = optixGetRayTmax();
 
     prd.scattered.s_origin = rayOrg + tmax * rayDir;
+    prd.scattered.normal_at_hitpoint = Ng;
 
     const auto &material = *self.material;
 
@@ -139,10 +144,12 @@ inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& se
         reflect_prob = 1.f;
 
     prd.scattered.s_origin = rayOrg + tmax * rayDir;
-    if (prd.random() < reflect_prob)
+    if (prd.random() < reflect_prob) {
         prd.scattered.s_direction = reflected;
-    else
+    } else {
         prd.scattered.s_direction = refracted;
+    }
 
+    prd.scattered.normal_at_hitpoint = normal;
     prd.event = Scattered;
 }
