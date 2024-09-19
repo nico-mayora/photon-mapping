@@ -34,6 +34,32 @@ struct Material {
     double refraction_idx;
 };
 
+enum LightType {
+    POINT_LIGHT,
+    SQUARE_LIGHT,
+};
+
+struct LightSource {
+    LightType source_type;
+    owl::vec3f pos;
+    double power;
+    owl::vec3f rgb;
+    /* for emission surface */
+    owl::vec3f normal;
+    double side_length;
+
+    /* calculated values */
+    int num_photons;
+};
+
+struct Photon {
+    owl::vec3f pos;
+    owl::vec3f dir;
+    int power;
+    owl::vec3f color;
+    bool is_alive;
+};
+
 /* variables for the triangle mesh geometry */
 struct TrianglesGeomData
 {
@@ -48,16 +74,11 @@ struct TrianglesGeomData
 /* variables for the ray generation program */
 struct RayGenData
 {
-    uint32_t *fbPtr;
-    owl::vec2i  fbSize;
+    Photon *fbPtr;
+    int fbSize;
     OptixTraversableHandle world;
-
-    struct {
-        owl::vec3f pos;
-        owl::vec3f dir_00; // out-of-screen
-        owl::vec3f dir_du; // left-to-right
-        owl::vec3f dir_dv; // bottom-to-top
-    } camera;
+    int lightsNum;
+    LightSource *lightSources;
 };
 
 typedef owl::LCG<> Random;
