@@ -53,7 +53,10 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
     }
 
     if (prd.event == Missed) {
-      return acum * prd.colour;
+      if (i == 0) {
+        return prd.colour;
+      }
+      return acum;
     }
 
     /* prd.event == Scattered */
@@ -103,7 +106,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
         * (1.f / SAMPLES_PER_PIXEL);
     }
 
-    acum = acum * (vec3f(1.) + light_colour) * colour_before_shadow;
+    acum = acum * light_colour * colour_before_shadow;
   }
 
   return acum;

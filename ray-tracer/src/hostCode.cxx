@@ -193,7 +193,7 @@ int main(int ac, char **av)
                       /* no sbt data: */0,nullptr,-1);
 
   // ----------- set variables  ----------------------------
-  owlMissProgSet3f(missProg,"sky_color", owl3f {42./255., 169./255., 238./255.});
+  owlMissProgSet3f(missProg,"sky_color", owl3f {0., 0., 0.});
 
   // -------------------------------------------------------
   // set up ray gen program
