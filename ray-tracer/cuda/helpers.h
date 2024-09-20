@@ -80,8 +80,9 @@ inline __device__ void scatterSpecular(PerRayData& prd, const TrianglesGeomData&
 
     if (dot(fuzzed, normal) > 0.f) {
         prd.event = Scattered;
-        prd.scattered.s_direction = fuzzed;
+        prd.scattered.s_direction = normalize(fuzzed);
         prd.scattered.s_origin = rayOrg + tmax * rayDir;
+        prd.colour = material.albedo;
     } else {
         prd.event = Absorbed;
     }
