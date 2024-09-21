@@ -32,6 +32,8 @@
 #include "../../externals/stb/stb_image_write.h"
 #include "assimp/Importer.hpp"
 
+#include "../../externals/cudaKDTree/cukd/builder.h"
+
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
   std::cout << "#owl.sample(main): " << message << std::endl;   \

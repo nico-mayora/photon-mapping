@@ -19,6 +19,7 @@ embed_ptx(
   OUTPUT_TARGET
     rayTracer-ptx
   PTX_LINK_LIBRARIES
+        cudaKDTree
     owl::owl
   SOURCES
     ray-tracer/cuda/deviceCode.cu
@@ -48,10 +49,14 @@ target_sources(photonMapping
 
 set(owl_dir ${PROJECT_SOURCE_DIR}/externals/owl)
 set(assimp_dir ${PROJECT_SOURCE_DIR}/externals/assimp)
+set(cukd_dir ${PROJECT_SOURCE_DIR}/externals/cudaKDTree)
 add_subdirectory(${owl_dir} EXCLUDE_FROM_ALL)
+add_subdirectory(${cukd_dir} EXCLUDE_FROM_ALL)
 add_subdirectory(${assimp_dir} EXCLUDE_FROM_ALL)
+include_directories(${cukd_dir}/cukd)
 target_link_libraries(photonMapping PRIVATE photonMapping-ptx owl::owl assimp::assimp)
-target_link_libraries(rayTracer PRIVATE rayTracer-ptx owl::owl assimp::assimp)
+target_link_libraries(rayTracer PRIVATE rayTracer-ptx owl::owl assimp::assimp cudaKDTree)
 
+set_property(TARGET rayTracer PROPERTY CXX_STANDARD 17)
 target_compile_features(rayTracer PRIVATE cxx_std_17)
 target_compile_features(photonMapping PRIVATE cxx_std_17)
