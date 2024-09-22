@@ -26,7 +26,7 @@ embed_ptx(
 )
 
 add_executable(photonMapping photon-mapping/src/hostCode.cxx)
-add_executable(rayTracer ray-tracer/src/hostCode.cxx)
+add_executable(rayTracer ray-tracer/src/hostCode.cu)
 
 set(common_sources
     common/src/assetImporter.h

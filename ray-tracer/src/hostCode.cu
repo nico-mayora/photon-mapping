@@ -32,8 +32,6 @@
 #include "../../externals/stb/stb_image_write.h"
 #include "assimp/Importer.hpp"
 
-#include "../../externals/cudaKDTree/cukd/builder.h"
-
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
   std::cout << "#owl.sample(main): " << message << std::endl;   \
@@ -131,8 +129,13 @@ int main(int ac, char **av)
   const int numMeshes = static_cast<int>(world->meshes.size());
 
   for (int meshID=0; meshID<numMeshes; meshID++) {
-    auto [vertices, indices, material] = world->meshes[meshID];
-    std::vector mats_vec = { *material };
+//    auto [vertices, indices, material] = world->meshes[meshID];
+    auto mesh = world->meshes[meshID];
+    auto vertices = mesh.vertices;
+    auto indices = mesh.indices;
+    auto material = mesh.material;
+
+    std::vector<Material> mats_vec = { *material };
 
     OWLBuffer vertexBuffer
       = owlDeviceBufferCreate(context,OWL_FLOAT3,vertices.size(), vertices.data());

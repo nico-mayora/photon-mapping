@@ -18,7 +18,7 @@
 #include "../../common/cuda/helpers.h"
 
 #include <optix_device.h>
-
+#include <cukd/fcp.h>
 #include "owl/RayGen.h"
 
 #define MAX_RAY_BOUNCES 100
@@ -26,6 +26,12 @@
 #define LIGHT_FACTOR 1
 
 using namespace owl;
+
+inline __device__
+bool foo(float3 queryPoint, float3 *points, int numPoints) {
+  int idOfClosestPoint = cukd::stackBased::fcp(queryPoint,points,numPoints);
+  return false;
+}
 
 inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
