@@ -36,6 +36,7 @@ struct RayGenData
     uint32_t *fbPtr;
     owl::vec2i  fbSize;
     OptixTraversableHandle world;
+    owl::vec3f sky_color;
 
     LightSource* lights;
     int numLights;

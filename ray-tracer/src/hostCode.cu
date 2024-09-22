@@ -41,6 +41,8 @@
   std::cout << "#owl.sample(main): " << message << std::endl;   \
   std::cout << OWL_TERMINAL_DEFAULT;
 
+constexpr owl3f sky_color = owl3f { 255./255., 255./255., 255./255. };
+
 /* Image configuration */
 auto outFileName = "result.png";
 const owl::vec2i fbSize(800,600);
@@ -182,7 +184,6 @@ int main(int ac, char **av)
   // -------------------------------------------------------
   // set up miss prog
   // -------------------------------------------------------
-  owl::vec3f sky_colour = { 42./255., 169./255., 238./255. };
   OWLVarDecl missProgVars[]
     = {
     { "sky_color", OWL_FLOAT3, OWL_OFFSETOF(MissProgData, sky_color)},
@@ -198,7 +199,7 @@ int main(int ac, char **av)
                       /* no sbt data: */0,nullptr,-1);
 
   // ----------- set variables  ----------------------------
-  owlMissProgSet3f(missProg,"sky_color", owl3f {0., 0., 0.});
+  owlMissProgSet3f(missProg,"sky_color", sky_color);
 
   // -------------------------------------------------------
   // set up ray gen program
@@ -211,6 +212,7 @@ int main(int ac, char **av)
     { "camera.dir_00", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_00)},
     { "camera.dir_du", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_du)},
     { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
+    { "sky_color",     OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,sky_color)},
     { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
     { "numLights",     OWL_INT, OWL_OFFSETOF(RayGenData,numLights)},
     { /* sentinel to mark end of list */ }
@@ -244,6 +246,7 @@ int main(int ac, char **av)
   owlRayGenSet3f    (rayGen,"camera.dir_00",reinterpret_cast<const owl3f&>(camera_d00));
   owlRayGenSet3f    (rayGen,"camera.dir_du",reinterpret_cast<const owl3f&>(camera_ddu));
   owlRayGenSet3f    (rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(camera_ddv));
+  owlRayGenSet3f    (rayGen,"sky_color",    sky_color);
   owlRayGenSetBuffer(rayGen,"lights",       light_sources_buffer);
   owlRayGenSet1i    (rayGen,"numLights",    num_lights);
 

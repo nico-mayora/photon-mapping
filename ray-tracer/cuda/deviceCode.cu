@@ -22,7 +22,8 @@
 
 #define MAX_RAY_BOUNCES 100
 #define SAMPLES_PER_PIXEL 1000
-#define LIGHT_FACTOR 1
+#define LIGHT_FACTOR 1.f
+#define AMBIENT_LIGHT false
 
 using namespace owl;
 
@@ -53,7 +54,10 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
 
     if (prd.event == Missed) {
       if (i == 0) {
-        return prd.colour;
+        return prd.colour; // sky colour
+      }
+      if (AMBIENT_LIGHT) {
+        return acum * prd.colour;
       }
       return acum;
     }
@@ -63,7 +67,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
     auto colour_before_shadow = prd.colour;
 
     /* trace shadow rays */
-    vec3f light_colour = 0.f;
+    vec3f light_colour = vec3f(0.f);
 
     const auto lights = self.lights;
     const auto numLights = self.numLights;
@@ -105,7 +109,11 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
         * (1.f / SAMPLES_PER_PIXEL);
     }
 
-    acum = acum * light_colour * colour_before_shadow;
+    if (AMBIENT_LIGHT) {
+      light_colour += LIGHT_FACTOR * self.sky_color * (1.f / SAMPLES_PER_PIXEL);
+    }
+
+    acum *= colour_before_shadow * light_colour;
   }
 
   return acum;
@@ -137,7 +145,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
     final_colour += colour;
   }
 
-  final_colour = clampvec(final_colour * (1.f / SAMPLES_PER_PIXEL), 255.);
+  final_colour = final_colour * (1.f / SAMPLES_PER_PIXEL);
 
   const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
 
