@@ -5,12 +5,14 @@
 
 #include "mesh.h"
 #include "world.h"
-#include "../../externals/assimp/include/assimp/Importer.hpp"
+#include "assimp/Importer.hpp"
 #include "owl/common/math/vec.h"
 
 /*
  * TODO:
  *  Image textures
+ *  Import camera
+ *  Import light sources
  */
 
 namespace assets {

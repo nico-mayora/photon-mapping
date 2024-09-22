@@ -15,12 +15,11 @@
 // ======================================================================== //
 
 #include "deviceCode.h"
-#include "helpers.h"
+#include "../../common/cuda/helpers.h"
 
 #include <optix_device.h>
 
 #define MAX_RAY_BOUNCES 100
-#define EPS 0.1
 
 using namespace owl;
 

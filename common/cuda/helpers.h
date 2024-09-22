@@ -1,6 +1,7 @@
 #pragma once
 
-#include "deviceCode.h"
+#include "../src/ray.h"
+#include "../src/mesh.h"
 
 #define RANDVEC3F owl::vec3f(rnd(),rnd(),rnd())
 #define EPS 1e-3f
@@ -31,7 +32,6 @@ inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {
 
     return normalize(cross(B-A,C-A));
 }
-
 
 inline __device__ void scatterLambertian(PerRayData& prd, const TrianglesGeomData& self) {
     using namespace owl;

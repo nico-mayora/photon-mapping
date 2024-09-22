@@ -27,7 +27,7 @@
 #include "../cuda/deviceCode.h"
 // external helper stuff for image output
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "assetImporter.h"
+#include "../../common/src/assetImporter.h"
 #include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
 #include "assimp/Importer.hpp"
