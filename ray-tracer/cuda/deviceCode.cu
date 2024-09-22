@@ -15,7 +15,7 @@
 // ======================================================================== //
 
 #include "deviceCode.h"
-#include "helpers.h"
+#include "../../common/cuda/helpers.h"
 
 #include <optix_device.h>
 

@@ -19,46 +19,8 @@
 #include <owl/owl.h>
 #include <owl/common/math/vec.h>
 #include <owl/common/math/random.h>
-
-/* We store the MaterialType to correctly pick the BSDF when reflecting incident rays. */
-enum MaterialType {
-    LAMBERTIAN,
-    SPECULAR,
-    GLASS,
-};
-
-struct Material {
-    MaterialType surface_type;
-    owl::vec3f albedo;
-    double reflectivity; // higher = more reflective
-    double refraction_idx;
-};
-
-enum LightType {
-    POINT_LIGHT,
-    SQUARE_LIGHT,
-};
-
-struct LightSource {
-    LightType source_type;
-    owl::vec3f pos;
-    double power;
-    owl::vec3f rgb;
-    /* for emission surface */
-    owl::vec3f normal;
-    double side_length;
-};
-
-/* variables for the triangle mesh geometry */
-struct TrianglesGeomData
-{
-    /*! material we use for the entire mesh */
-    Material *material;
-    /*! array/buffer of vertex indices */
-    owl::vec3i *index;
-    /*! array/buffer of vertex positions */
-    owl::vec3f *vertex;
-};
+#include "../../common/src/material.h"
+#include "../../common/src/light.h"
 
 /* variables for the ray generation program */
 struct RayGenData
@@ -76,26 +38,6 @@ struct RayGenData
         owl::vec3f dir_du; // left-to-right
         owl::vec3f dir_dv; // bottom-to-top
     } camera;
-};
-
-typedef owl::LCG<> Random;
-
-enum RayEvent {
-    Scattered,
-    Absorbed,
-    Missed,
-};
-
-struct PerRayData {
-    Random random;
-
-    owl::vec3f colour;
-    RayEvent event;
-    struct {
-        owl::vec3f s_origin;
-        owl::vec3f s_direction;
-        owl::vec3f normal_at_hitpoint;
-    } scattered;
 };
 
 /* variables for the miss program */
