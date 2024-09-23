@@ -11,7 +11,9 @@ enum MaterialType {
 struct Material {
     MaterialType surface_type;
     owl::vec3f albedo;
+    // Specular == Metal
     double reflectivity; // higher = more reflective
+    // Glass
     double refraction_idx;
 };
 
