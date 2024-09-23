@@ -63,6 +63,8 @@ struct RayGenData
 
     LightSource* lights;
     int numLights;
+    Photon* photons;
+    int numPhotons;
 
     struct {
         owl::vec3f pos;

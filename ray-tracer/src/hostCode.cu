@@ -105,6 +105,7 @@ int main(int ac, char **av)
     photons[i].color = photonsFromFile[i].color;
   }
   cukd::buildTree<Photon,Photon_traits>(photons,number_of_photons);
+  printf("Number of photons: %d\n", number_of_photons);
   LOG_OK("Built KD-tree.");
 
   // create a context on the first device:
@@ -183,9 +184,6 @@ int main(int ac, char **av)
     geoms.push_back(trianglesGeom);
   }
 
-  OWLBuffer light_sources_buffer =  owlDeviceBufferCreate(context,
-    OWL_USER_TYPE(LightSource),world->light_sources.size(), world->light_sources.data());
-
   // ------------------------------------------------------------------
   // the group/accel for that mesh
   // ------------------------------------------------------------------
@@ -236,7 +234,9 @@ int main(int ac, char **av)
     { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
     { "sky_color",     OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,sky_color)},
     { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
-    { "numLights",     OWL_INT, OWL_OFFSETOF(RayGenData,numLights)},
+    { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
+    { "photons",      OWL_BUFPTR,       OWL_OFFSETOF(RayGenData,photons)},
+    { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
     { /* sentinel to mark end of list */ }
   };
 
@@ -260,6 +260,11 @@ int main(int ac, char **av)
   camera_d00 -= 0.5f * camera_ddv;
   int num_lights = static_cast<int>(world->light_sources.size());
 
+  OWLBuffer light_sources_buffer =  owlDeviceBufferCreate(context,
+    OWL_USER_TYPE(LightSource),world->light_sources.size(), world->light_sources.data());
+
+  OWLBuffer photons_buffer = owlDeviceBufferCreate(context, OWL_USER_TYPE(Photon), number_of_photons, photonsFromFile);
+
   // ----------- set variables  ----------------------------
   owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
   owlRayGenSet2i    (rayGen,"fbSize",       reinterpret_cast<const owl2i&>(fbSize));
@@ -271,6 +276,8 @@ int main(int ac, char **av)
   owlRayGenSet3f    (rayGen,"sky_color",    sky_color);
   owlRayGenSetBuffer(rayGen,"lights",       light_sources_buffer);
   owlRayGenSet1i    (rayGen,"numLights",    num_lights);
+  owlRayGenSetBuffer(rayGen,"photons",      photons_buffer);
+  owlRayGenSet1i    (rayGen,"numPhotons",   number_of_photons);
 
   LOG("building sbt...");
 
