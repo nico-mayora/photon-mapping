@@ -42,7 +42,7 @@
 
 /* Image configuration */
 auto outFileName = "result.png";
-constexpr int totalPhotons = 200;
+constexpr int totalPhotons = 10000;
 
 extern "C" char deviceCode_ptx[];
 
@@ -72,7 +72,7 @@ int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/simpler-cube/cube.glb";
+  std::string path = "../assets/models/dragon/dragon-box.glb";
   auto world =  assets::import_scene(ai_importer, path);
   double totalPower = 0;
   for (const auto & light : world->light_sources) {
@@ -130,13 +130,6 @@ int main(int ac, char **av)
 
   for (int meshID=0; meshID<numMeshes; meshID++) {
     auto [vertices, indices, material] = world->meshes[meshID];
-    std::cout << "ID: " << meshID << " | mat: " << material->albedo << '\n';
-    for (const auto & v : vertices)
-      std::cout << "v " << v << '\n';
-
-    for (const auto & i : indices)
-      std::cout << "v " << i << '\n';
-
 
     std::vector mats_vec = { *material };
 

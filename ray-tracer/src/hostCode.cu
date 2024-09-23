@@ -31,6 +31,7 @@
 #include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
 #include "assimp/Importer.hpp"
+#include <cukd/builder.h>
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -53,24 +54,32 @@ constexpr float cosFovy = 0.66f;
 
 extern "C" char deviceCode_ptx[];
 
-std::vector<Photon> readPhotonsFromFile(const std::string& filename) {
+Photon* readPhotonsFromFile(const std::string& filename, int& count) {
   std::ifstream file(filename);
-  std::vector<Photon> photons;
+  std::vector<Photon> tempPhotons;
 
   if (!file.is_open()) {
     std::cerr << "Error opening file: " << filename << std::endl;
-    return photons;
+    count = 0;
+    return nullptr;
   }
 
   Photon photon;
   while (file >> photon.pos.x >> photon.pos.y >> photon.pos.z
               >> photon.dir.x >> photon.dir.y >> photon.dir.z
               >> photon.color.x >> photon.color.y >> photon.color.z) {
-    photons.push_back(photon);
+    tempPhotons.push_back(photon);
   }
 
-  file.close();
-  return photons;
+  count = tempPhotons.size();
+  if (count == 0) {
+    return nullptr;
+  }
+
+  Photon* photonArray = new Photon[count];
+  std::copy(tempPhotons.begin(), tempPhotons.end(), photonArray);
+
+  return photonArray;
 }
 
 int main(int ac, char **av)
@@ -82,8 +91,21 @@ int main(int ac, char **av)
   
   LOG_OK("Loaded world.");
 
-  auto photons = readPhotonsFromFile("photons.txt");
+  int number_of_photons;
+  auto photonsFromFile = readPhotonsFromFile("photons.txt", number_of_photons);
   LOG_OK("Loaded photons.");
+
+  // Build KD-tree
+  LOG("Building KD-tree...");
+  Photon *photons;
+  CUKD_CUDA_CALL(MallocManaged((void **)&photons,number_of_photons*sizeof(Photon)));
+  for (int i=0;i<number_of_photons;i++) {
+    photons[i].pos = photonsFromFile[i].pos;
+    photons[i].dir = photonsFromFile[i].dir;
+    photons[i].color = photonsFromFile[i].color;
+  }
+  cukd::buildTree<Photon,Photon_traits>(photons,number_of_photons);
+  LOG_OK("Built KD-tree.");
 
   // create a context on the first device:
   OWLContext context = owlContextCreate(nullptr,1);
