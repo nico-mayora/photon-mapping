@@ -205,7 +205,7 @@ int main(int ac, char **av)
   // set up ray gen program
   // -------------------------------------------------------
   OWLVarDecl rayGenVars[] = {
-    { "fbPtr",         OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,fbPtr)},
+    { "photons",         OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,fbPtr)},
     { "fbSize",        OWL_INT2,        OWL_OFFSETOF(RayGenData,fbSize)},
     { "world",         OWL_GROUP,       OWL_OFFSETOF(RayGenData,world)},
     { "camera.pos",    OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.pos)},
@@ -239,7 +239,7 @@ int main(int ac, char **av)
   int num_lights = static_cast<int>(world->light_sources.size());
 
   // ----------- set variables  ----------------------------
-  owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
+  owlRayGenSetBuffer(rayGen,"photons",        frameBuffer);
   owlRayGenSet2i    (rayGen,"fbSize",       reinterpret_cast<const owl2i&>(fbSize));
   owlRayGenSetGroup (rayGen,"world",        owl_world);
   owlRayGenSet3f    (rayGen,"camera.pos",   reinterpret_cast<const owl3f&>(camera_pos));

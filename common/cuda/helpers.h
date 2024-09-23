@@ -60,7 +60,7 @@ inline __device__ void scatterLambertian(PerRayData& prd, const TrianglesGeomDat
 
     const auto &material = *self.material;
 
-    prd.event = Scattered;
+    prd.event = ReflectedDiffuse;
     prd.colour = material.albedo;
 }
 
@@ -79,7 +79,7 @@ inline __device__ void scatterSpecular(PerRayData& prd, const TrianglesGeomData&
         randomPointInUnitSphere(prd.random) * static_cast<float>(1 - material.reflectivity);
 
     if (dot(fuzzed, normal) > 0.f) {
-        prd.event = Scattered;
+        prd.event = ReflectedSpecular;
         prd.scattered.s_direction = normalize(fuzzed);
         prd.scattered.s_origin = rayOrg + tmax * rayDir;
         prd.colour = material.albedo;

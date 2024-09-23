@@ -149,7 +149,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 
   const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
 
-  self.fbPtr[fbOfs]
+  self.photons[fbOfs]
     = make_rgba(final_colour);
 }
 

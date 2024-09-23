@@ -19,8 +19,6 @@
 
 #include <optix_device.h>
 
-#define MAX_RAY_BOUNCES 100
-
 using namespace owl;
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -47,17 +45,32 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   ray.origin = lightSource.pos;
   ray.direction = normalize(randomPointInUnitSphere(prd.random));
 
-  Photon out_photon;
-  out_photon.is_alive = true;
-  owl::traceRay(self.world, ray, out_photon);
+  prd.colour = lightSource.rgb;
+  for (int i = 0; i < MAX_RAY_BOUNCES; i++) {
+    owl::traceRay(self.world, ray, prd);
 
-  const int fbOfs = pixelID.x;
-  self.fbPtr[fbOfs] = out_photon;
+    if (prd.event == Missed || prd.event == Absorbed) {
+      break;
+    }
+
+    if (prd.event == ReflectedDiffuse) {
+      //int j = atomicAdd(&self.photonsCount, 1);
+      int j = pixelID.x;
+
+      self.photons[j].color = prd.colour;
+      self.photons[j].pos = prd.scattered.s_origin;
+      self.photons[j].dir = prd.scattered.s_direction;
+      self.photons[j].is_alive = true;
+    }
+
+    ray.origin = prd.scattered.s_origin;
+    ray.direction = prd.scattered.s_direction;
+  }
 }
 
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
-  auto &prd = owl::getPRD<Photon>();
+  auto &prd = owl::getPRD<PerRayData>();
 
   const TrianglesGeomData &self = owl::getProgramData<TrianglesGeomData>();
   const vec3f rayDir = optixGetWorldRayDirection();
@@ -65,16 +78,29 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const auto tmax = optixGetRayTmax();
   const auto &material = *self.material;
 
-  prd.pos = rayOrg + (tmax * rayDir);
-
-  prd.dir = normalize(rayDir);
-  prd.color = material.albedo;
-  prd.power = 1.f;
+  switch (material.surface_type) {
+    case LAMBERTIAN: {
+      scatterLambertian(prd, self);
+      break;
+    }
+    case SPECULAR: {
+      scatterSpecular(prd, self);
+      break;
+    }
+    case GLASS: {
+      scatterGlass(prd, self);
+      break;
+    }
+    default: {
+      scatterLambertian(prd, self);
+      break;
+    }
+  }
 }
 
 OPTIX_MISS_PROGRAM(miss)()
 {
-  auto &prd = owl::getPRD<Photon>();
-  prd.is_alive = false;
+  auto &prd = owl::getPRD<PerRayData>();
+  prd.event = Missed;
 }
 
