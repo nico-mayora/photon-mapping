@@ -62,7 +62,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
       return acum;
     }
 
-    /* prd.event == Scattered */
+    /* prd.event is not Absorbed or Missed */
     ray = Ray(prd.scattered.s_origin, prd.scattered.s_direction, EPS, 1e10f);
     auto colour_before_shadow = prd.colour;
 
@@ -149,7 +149,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 
   const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
 
-  self.photons[fbOfs]
+  self.fbPtr[fbOfs]
     = make_rgba(final_colour);
 }
 
