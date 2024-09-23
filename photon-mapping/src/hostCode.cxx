@@ -55,7 +55,7 @@ void writeAlivePhotons(const Photon* photons, const std::string& filename) {
 
   outFile << std::fixed << std::setprecision(6);
 
-  for (int i = 0; i < MAX_PHOTONS; i++) {
+  for (int i = 0; i < MAX_PHOTONS * MAX_RAY_BOUNCES; i++) {
     auto photon = photons[i];
     if (photon.is_alive) {
       outFile << photon.pos.x << " " << photon.pos.y << " " << photon.pos.z << " "
@@ -71,7 +71,7 @@ int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/simpler-cube/cube.glb";
+  std::string path = "../assets/models/cornell-box/cornell-box.glb";
   auto world =  assets::import_scene(ai_importer, path);
   double totalPower = 0;
   for (const auto & light : world->light_sources) {
@@ -122,7 +122,7 @@ int main(int ac, char **av)
   // triangle mesh
   // ------------------------------------------------------------------
   OWLBuffer frameBuffer
-  = owlHostPinnedBufferCreate(context,OWL_USER_TYPE(Photon),MAX_PHOTONS);
+  = owlHostPinnedBufferCreate(context,OWL_USER_TYPE(Photon),MAX_PHOTONS * MAX_RAY_BOUNCES);
 
   std::vector<OWLGeom> geoms;
   const int numMeshes = static_cast<int>(world->meshes.size());

@@ -22,8 +22,8 @@
 #include "../../common/src/material.h"
 #include "../../common/src/light.h"
 
-#define MAX_RAY_BOUNCES 10
-#define MAX_PHOTONS 1000000
+#define MAX_RAY_BOUNCES 200
+#define MAX_PHOTONS 100000
 
 struct Photon
 {
