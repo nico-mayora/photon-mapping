@@ -38,7 +38,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
       printf("ray.origin: %f %f %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
       printf("is_alive: %d\n", is_alive);
     }
-    int photon_index = pixelID.x + i;
+    int photon_index = atomicAdd(self.photonsCount, 1);
     Photon photon;
     photon.is_alive = false;
 

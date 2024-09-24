@@ -25,7 +25,7 @@ embed_ptx(
     ray-tracer/cuda/deviceCode.cu
 )
 
-add_executable(photonMapping photon-mapping/src/hostCode.cxx)
+add_executable(photonMapping photon-mapping/src/hostCode.cu)
 add_executable(rayTracer ray-tracer/src/hostCode.cu)
 
 set(common_sources

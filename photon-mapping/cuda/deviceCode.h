@@ -22,7 +22,7 @@ struct Photon
 struct RayGenData
 {
     Photon *photons;
-    int photonsCount;
+    int *photonsCount;
     OptixTraversableHandle world;
     int lightsNum;
     LightSource *lightSources;
