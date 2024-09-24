@@ -3,11 +3,14 @@
 
 #include <optix_device.h>
 #include "owl/RayGen.h"
+#include <cukd/knn.h>
 
 #define MAX_RAY_BOUNCES 100
 #define SAMPLES_PER_PIXEL 1000
 #define LIGHT_FACTOR 1.f
 #define AMBIENT_LIGHT false
+#define K_NEAREST_NEIGHBOURS 4
+#define K_MAX_DISTANCE 50
 
 using namespace owl;
 
@@ -103,6 +106,12 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
   return acum;
 }
 
+inline __device__
+cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(vec3f queryPoint, Photon* photons, int numPoints) {
+  cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
+  auto sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits>(closest,queryPoint,photons,numPoints);
+}
+
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
   const RayGenData &self = owl::getProgramData<RayGenData>();
@@ -110,6 +119,17 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 
   PerRayData prd;
   prd.random.init(pixelID.x,pixelID.y);
+
+  if (pixelID.x == 0 && pixelID.y == 0) {
+    auto queryPoint = vec3f(0.f);
+    auto closest = KNearestPhotons(queryPoint, self.photons, self.numPhotons);
+
+    for (int i = 0; i < K_NEAREST_NEIGHBOURS; i++) {
+      auto id = closest.get_pointID(i);
+      auto photon = self.photons[id];
+      printf("Closest point %d: %f %f %f\n", i, photon.pos.x, photon.pos.y, photon.pos.z);
+    }
+  }
 
   auto final_colour = vec3f(0.f);
   for (int sample = 0; sample < SAMPLES_PER_PIXEL; sample++) {

@@ -56,7 +56,7 @@ int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/cornell-box/cornell-box.glb";
+  std::string path = "../assets/models/dragon/dragon-box.glb";
   auto world =  assets::import_scene(ai_importer, path);
   double totalPower = 0;
   for (const auto & light : world->light_sources) {
