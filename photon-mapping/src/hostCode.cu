@@ -4,7 +4,7 @@
 // public owl node-graph API
 #include "owl/owl.h"
 // our device-side data structures
-#include "../cuda/deviceCode.h"
+#include "../include/deviceCode.h"
 // external helper stuff for image output
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../common/src/assetImporter.h"

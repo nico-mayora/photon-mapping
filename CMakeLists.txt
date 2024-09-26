@@ -36,16 +36,24 @@ set(common_sources
     common/src/material.h
     common/src/light.h
     common/src/ray.h
+    common/src/camera.h
+    common/src/common.h
 )
 
 target_sources(rayTracer
   PRIVATE
     ${common_sources}
+    ray-tracer/include/photon.h
+    ray-tracer/include/photonViewer.h
+    ray-tracer/src/photonViewerHost.cu
+    ray-tracer/src/programHost.cu
+    ray-tracer/src/raytracerHost.cu
 )
 
 target_sources(photonMapping
   PRIVATE
     ${common_sources}
+    photon-mapping/include/photon.h
 )
 
 

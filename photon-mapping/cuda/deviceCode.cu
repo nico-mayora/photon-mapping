@@ -1,4 +1,4 @@
-#include "deviceCode.h"
+#include "../include/deviceCode.h"
 #include "../../common/cuda/helpers.h"
 
 #include <optix_device.h>
@@ -34,9 +34,9 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   owl::vec3f color = lightSource.rgb;
   for (int i = 0; i < MAX_RAY_BOUNCES; i++) {
     if (pixelID.x == 0) {
-      printf("i: %d\n", i);
-      printf("ray.origin: %f %f %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
-      printf("is_alive: %d\n", is_alive);
+      //printf("i: %d\n", i);
+      //printf("ray.origin: %f %f %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
+      //printf("is_alive: %d\n", is_alive);
     }
     int photon_index = atomicAdd(self.photonsCount, 1);
     Photon photon;
@@ -48,7 +48,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
       if (prd.event == Missed || prd.event == Absorbed) {
         is_alive = false;
         if (pixelID.x == 0) {
-          printf("prd event: Missed or Absorbed\n");
+          //printf("prd event: Missed or Absorbed\n");
         }
       }
 
@@ -61,11 +61,11 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
           photon.dir = ray.direction;
           photon.is_alive = true;
           if (pixelID.x == 0) {
-            printf("prd event: ReflectedDiffuse, coef: %f\n", prd.material.diffuseCoefficient);
+            //printf("prd event: ReflectedDiffuse, coef: %f\n", prd.material.diffuseCoefficient);
           }
         } else {
           if (pixelID.x == 0) {
-            printf("prd event: ReflectedSpecular, coef: %f\n", prd.material.reflectivity);
+            //printf("prd event: ReflectedSpecular, coef: %f\n", prd.material.reflectivity);
           }
         }
 
@@ -77,23 +77,23 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
         // Currently objects are either diffuse or specular, and the consequent ray is always stored in prd.scatered
         // When we support multiple coefs per material, we should check for different rays here
         if (pixelID.x == 0) {
-          printf("russian_roulette: %f\n", russian_roulette);
+          //printf("russian_roulette: %f\n", russian_roulette);
         }
         if (russian_roulette < d) {
           if (pixelID.x == 0) {
-            printf("russian_roulette < d\n");
+            //printf("russian_roulette < d\n");
           }
           ray.origin = prd.scattered.s_origin;
           ray.direction = prd.scattered.s_direction;
         } else if (russian_roulette < d + s) {
           if (pixelID.x == 0) {
-            printf("russian_roulette < d + s\n");
+            //printf("russian_roulette < d + s\n");
           }
           ray.origin = prd.scattered.s_origin;
           ray.direction = prd.scattered.s_direction;
         } else {
           if (pixelID.x == 0) {
-            printf("russian_roulette MISS\n");
+            //printf("russian_roulette MISS\n");
           }
           is_alive = false;
         }
@@ -101,13 +101,15 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 
       if (prd.event == Refraction) {
         if (pixelID.x == 0) {
-          printf("prd event: Refraction\n");
+          //printf("prd event: Refraction\n");
         }
         color *= prd.colour;
         ray.origin = prd.scattered.s_origin;
         ray.direction = prd.scattered.s_direction;
       }
     }
+
+    photon.color = vec3f(0.5f, 1.f, 0.2f);
 
     self.photons[photon_index] = photon;
   }
