@@ -6,7 +6,11 @@
 #include "../../common/src/material.h"
 #include "../../common/src/light.h"
 
-struct Photon {
+#define MAX_RAY_BOUNCES 200
+#define MAX_PHOTONS 100000
+
+struct Photon
+{
     owl::vec3f pos;
     owl::vec3f dir;
     int power;
@@ -17,8 +21,8 @@ struct Photon {
 /* variables for the ray generation program */
 struct RayGenData
 {
-    Photon *fbPtr;
-    int fbSize;
+    Photon *photons;
+    int photonsCount;
     OptixTraversableHandle world;
     int lightsNum;
     LightSource *lightSources;

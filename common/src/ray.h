@@ -6,15 +6,15 @@
 typedef owl::LCG<> Random;
 
 enum RayEvent {
-    Scattered,
+    Refraction,
+    ReflectedSpecular,
+    ReflectedDiffuse,
     Absorbed,
     Missed,
 };
 
 struct PerRayData {
     Random random;
-    int bounces_ramaining;
-
     owl::vec3f colour;
     RayEvent event;
     struct {
@@ -22,4 +22,9 @@ struct PerRayData {
         owl::vec3f s_direction;
         owl::vec3f normal_at_hitpoint;
     } scattered;
+    struct {
+        double diffuseCoefficient;
+        double reflectivity;
+        double refraction_idx;
+    } material;
 };

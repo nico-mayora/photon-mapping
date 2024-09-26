@@ -1,3 +1,22 @@
+// ======================================================================== //
+// Copyright 2019 Ingo Wald                                                 //
+//                                                                          //
+// Licensed under the Apache License, Version 2.0 (the "License");          //
+// you may not use this file except in compliance with the License.         //
+// You may obtain a copy of the License at                                  //
+//                                                                          //
+//     http://www.apache.org/licenses/LICENSE-2.0                           //
+//                                                                          //
+// Unless required by applicable law or agreed to in writing, software      //
+// distributed under the License is distributed on an "AS IS" BASIS,        //
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. //
+// See the License for the specific language governing permissions and      //
+// limitations under the License.                                           //
+// ======================================================================== //
+
+// This program sets up a single geometric object, a mesh for a cube, and
+// its acceleration structure, then ray traces it.
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -23,7 +42,7 @@
 
 /* Image configuration */
 auto outFileName = "result.png";
-constexpr int totalPhotons = 10000;
+constexpr int totalPhotons = 200;
 
 extern "C" char deviceCode_ptx[];
 
@@ -37,7 +56,7 @@ void writeAlivePhotons(const Photon* photons, const std::string& filename) {
 
   outFile << std::fixed << std::setprecision(6);
 
-  for (int i = 0; i < totalPhotons; i++) {
+  for (int i = 0; i < MAX_PHOTONS * MAX_RAY_BOUNCES; i++) {
     auto photon = photons[i];
     if (photon.is_alive) {
       outFile << photon.pos.x << " " << photon.pos.y << " " << photon.pos.z << " "
@@ -53,14 +72,14 @@ int main(int ac, char **av)
 {
   LOG("Starting up...");
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/dragon/dragon-box.glb";
+  std::string path = "../assets/models/simpler-cube/cube.glb";
   auto world =  assets::import_scene(ai_importer, path);
   double totalPower = 0;
   for (const auto & light : world->light_sources) {
     totalPower += light.power;
   }
   for (auto & light : world->light_sources) {
-    light.num_photons = static_cast<int>(light.power / totalPower * totalPhotons);
+    light.num_photons = static_cast<int>(light.power / totalPower * MAX_PHOTONS);
   }
 
 
@@ -104,7 +123,7 @@ int main(int ac, char **av)
   // triangle mesh
   // ------------------------------------------------------------------
   OWLBuffer frameBuffer
-  = owlHostPinnedBufferCreate(context,OWL_USER_TYPE(Photon),totalPhotons);
+  = owlHostPinnedBufferCreate(context,OWL_USER_TYPE(Photon),MAX_PHOTONS * MAX_RAY_BOUNCES);
 
   std::vector<OWLGeom> geoms;
   const int numMeshes = static_cast<int>(world->meshes.size());
@@ -174,8 +193,8 @@ int main(int ac, char **av)
   // set up ray gen program
   // -------------------------------------------------------
   OWLVarDecl rayGenVars[] = {
-          { "fbPtr",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,fbPtr)},
-          { "fbSize",        OWL_INT,   OWL_OFFSETOF(RayGenData,fbSize)},
+          { "photons",         OWL_BUFPTR, OWL_OFFSETOF(RayGenData,photons)},
+          { "photonsCount",        OWL_INT,   OWL_OFFSETOF(RayGenData,photonsCount)},
           { "world",         OWL_GROUP,  OWL_OFFSETOF(RayGenData,world)},
           { "lightsNum",     OWL_INT,   OWL_OFFSETOF(RayGenData,lightsNum)},
           { "lightSources",        OWL_BUFPTR,  OWL_OFFSETOF(RayGenData,lightSources)},
@@ -193,8 +212,8 @@ int main(int ac, char **av)
   auto lightSourcesBuffer = owlDeviceBufferCreate(context,OWL_USER_TYPE(LightSource),numLights, world->light_sources.data());
 
   // ----------- set variables  ----------------------------
-  owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
-  owlRayGenSet1i    (rayGen,"fbSize",       totalPhotons);
+  owlRayGenSetBuffer(rayGen,"photons",      frameBuffer);
+  owlRayGenSet1i    (rayGen,"photonsCount", 0);
   owlRayGenSetGroup (rayGen,"world",        owl_world);
   owlRayGenSet1i    (rayGen,"lightsNum",    numLights);
   owlRayGenSetBuffer(rayGen,"lightSources", lightSourcesBuffer);
@@ -211,7 +230,7 @@ int main(int ac, char **av)
   // ##################################################################
 
   LOG("launching ...");
-  owlRayGenLaunch2D(rayGen,totalPhotons,1);
+  owlRayGenLaunch2D(rayGen,MAX_PHOTONS,1);
 
   LOG("done with launch, writing picture ...");
   // for host pinned mem it doesn't matter which device we query...

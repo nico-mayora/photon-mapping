@@ -3,8 +3,6 @@
 
 #include <optix_device.h>
 
-#define MAX_RAY_BOUNCES 100
-
 using namespace owl;
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -30,35 +28,121 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   Ray ray;
   ray.origin = lightSource.pos;
   ray.direction = normalize(randomPointInUnitSphere(prd.random));
+  prd.colour = lightSource.rgb;
 
-  Photon out_photon;
-  out_photon.is_alive = true;
-  owl::traceRay(self.world, ray, out_photon);
+  bool is_alive = true;
+  owl::vec3f color = lightSource.rgb;
+  for (int i = 0; i < MAX_RAY_BOUNCES; i++) {
+    if (pixelID.x == 0) {
+      printf("i: %d\n", i);
+      printf("ray.origin: %f %f %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
+      printf("is_alive: %d\n", is_alive);
+    }
+    int photon_index = pixelID.x + i;
+    Photon photon;
+    photon.is_alive = false;
 
-  const int fbOfs = pixelID.x;
-  self.fbPtr[fbOfs] = out_photon;
+    if (is_alive) {
+      owl::traceRay(self.world, ray, prd);
+
+      if (prd.event == Missed || prd.event == Absorbed) {
+        is_alive = false;
+        if (pixelID.x == 0) {
+          printf("prd event: Missed or Absorbed\n");
+        }
+      }
+
+      if (prd.event == ReflectedDiffuse || prd.event == ReflectedSpecular) {
+
+        if (prd.event == ReflectedDiffuse) {
+          color *= prd.colour;
+          photon.color = color;
+          photon.pos = prd.scattered.s_origin;
+          photon.dir = ray.direction;
+          photon.is_alive = true;
+          if (pixelID.x == 0) {
+            printf("prd event: ReflectedDiffuse, coef: %f\n", prd.material.diffuseCoefficient);
+          }
+        } else {
+          if (pixelID.x == 0) {
+            printf("prd event: ReflectedSpecular, coef: %f\n", prd.material.reflectivity);
+          }
+        }
+
+        float russian_roulette = prd.random();
+
+        double d = prd.material.diffuseCoefficient;
+        double s = prd.material.reflectivity;
+
+        // Currently objects are either diffuse or specular, and the consequent ray is always stored in prd.scatered
+        // When we support multiple coefs per material, we should check for different rays here
+        if (pixelID.x == 0) {
+          printf("russian_roulette: %f\n", russian_roulette);
+        }
+        if (russian_roulette < d) {
+          if (pixelID.x == 0) {
+            printf("russian_roulette < d\n");
+          }
+          ray.origin = prd.scattered.s_origin;
+          ray.direction = prd.scattered.s_direction;
+        } else if (russian_roulette < d + s) {
+          if (pixelID.x == 0) {
+            printf("russian_roulette < d + s\n");
+          }
+          ray.origin = prd.scattered.s_origin;
+          ray.direction = prd.scattered.s_direction;
+        } else {
+          if (pixelID.x == 0) {
+            printf("russian_roulette MISS\n");
+          }
+          is_alive = false;
+        }
+      }
+
+      if (prd.event == Refraction) {
+        if (pixelID.x == 0) {
+          printf("prd event: Refraction\n");
+        }
+        color *= prd.colour;
+        ray.origin = prd.scattered.s_origin;
+        ray.direction = prd.scattered.s_direction;
+      }
+    }
+
+    self.photons[photon_index] = photon;
+  }
 }
 
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
-  auto &prd = owl::getPRD<Photon>();
+  auto &prd = owl::getPRD<PerRayData>();
 
   const TrianglesGeomData &self = owl::getProgramData<TrianglesGeomData>();
-  const vec3f rayDir = optixGetWorldRayDirection();
-  const vec3f rayOrg = optixGetWorldRayOrigin();
-  const auto tmax = optixGetRayTmax();
   const auto &material = *self.material;
 
-  prd.pos = rayOrg + (tmax * rayDir);
-
-  prd.dir = normalize(rayDir);
-  prd.color = material.albedo;
-  prd.power = 1.f;
+  switch (material.surface_type) {
+    case LAMBERTIAN: {
+      scatterLambertian(prd, self);
+      break;
+    }
+    case SPECULAR: {
+      scatterSpecular(prd, self);
+      break;
+    }
+    case GLASS: {
+      scatterGlass(prd, self);
+      break;
+    }
+    default: {
+      scatterLambertian(prd, self);
+      break;
+    }
+  }
 }
 
 OPTIX_MISS_PROGRAM(miss)()
 {
-  auto &prd = owl::getPRD<Photon>();
-  prd.is_alive = false;
+  auto &prd = owl::getPRD<PerRayData>();
+  prd.event = Missed;
 }
 

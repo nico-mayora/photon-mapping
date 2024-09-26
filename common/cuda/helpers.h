@@ -5,6 +5,7 @@
 
 #define RANDVEC3F owl::vec3f(rnd(),rnd(),rnd())
 #define EPS 1e-3f
+#define DIFFUSE_COEF 1.f
 
 inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
     return owl::vec3f(owl::clamp(v.x, f), owl::clamp(v.y, f), owl::clamp(v.z, f));
@@ -60,8 +61,11 @@ inline __device__ void scatterLambertian(PerRayData& prd, const TrianglesGeomDat
 
     const auto &material = *self.material;
 
-    prd.event = Scattered;
+    prd.event = ReflectedDiffuse;
     prd.colour = material.albedo;
+    prd.material.diffuseCoefficient = DIFFUSE_COEF; // material.diffuseCoefficient when we have it stored
+    prd.material.reflectivity = 0.f; // material.reflectivity if we allow multiple coefs per material
+    prd.material.refraction_idx = 0.f; // material.refraction_idx if we allow multiple coefs per material
 }
 
 inline __device__ void scatterSpecular(PerRayData& prd, const TrianglesGeomData& self) {
@@ -79,13 +83,17 @@ inline __device__ void scatterSpecular(PerRayData& prd, const TrianglesGeomData&
         randomPointInUnitSphere(prd.random) * static_cast<float>(1 - material.reflectivity);
 
     if (dot(fuzzed, normal) > 0.f) {
-        prd.event = Scattered;
+        prd.event = ReflectedSpecular;
         prd.scattered.s_direction = normalize(fuzzed);
         prd.scattered.s_origin = rayOrg + tmax * rayDir;
         prd.colour = material.albedo;
     } else {
         prd.event = Absorbed;
     }
+
+    prd.material.diffuseCoefficient = 0.f; // material.diffuseCoefficient when we have it stored
+    prd.material.reflectivity = material.reflectivity;
+    prd.material.refraction_idx = 0.f; // material.refraction_idx if we allow multiple coefs per material
 }
 
 inline __device__ float schlickReflectance(const float cos, const float ior) {
@@ -152,5 +160,8 @@ inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& se
     }
 
     prd.scattered.normal_at_hitpoint = normal;
-    prd.event = Scattered;
+    prd.event = Refraction;
+    prd.material.diffuseCoefficient = 0.f; // material.diffuseCoefficient when we have it stored
+    prd.material.reflectivity = 0.f; // material.reflectivity;  if we allow multiple coefs per material
+    prd.material.refraction_idx = material.refraction_idx;
 }
