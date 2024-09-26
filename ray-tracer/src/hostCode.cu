@@ -11,8 +11,11 @@
 #include "../../common/src/assetImporter.h"
 #include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
+#include "../../common/src/configLoader.h"
 #include "assimp/Importer.hpp"
 #include <cukd/builder.h>
+
+#define CONFIG_PATH "../config.toml"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -22,16 +25,6 @@
   std::cout << OWL_TERMINAL_LIGHT_BLUE;                         \
   std::cout << "#owl.sample(main): " << message << std::endl;   \
   std::cout << OWL_TERMINAL_DEFAULT;
-
-constexpr owl3f sky_color = owl3f { 255./255., 255./255., 255./255. };
-
-/* Image configuration */
-auto outFileName = "result.png";
-const owl::vec2i fbSize(800,600);
-const owl::vec3f lookFrom(80.f,30.f,0.f);
-const owl::vec3f lookAt(10.f,20.f,0.f);
-const owl::vec3f lookUp(0.f,-1.f,0.f);
-constexpr float cosFovy = 0.66f;
 
 extern "C" char deviceCode_ptx[];
 
@@ -66,20 +59,36 @@ Photon* readPhotonsFromFile(const std::string& filename, int& count) {
 int main(int ac, char **av)
 {
   LOG("Starting up...");
+  LOG("Loading Config file...")
+
+  auto cfg = parse_config(CONFIG_PATH).at("ray-tracer");
+
+  auto photons_filename = cfg.at("photons_file").as_string();
+  auto model_path = cfg.at("model_path").as_string();
+  auto output_filename = cfg.at("output_filename").as_string();
+  auto sky_colour = toml_to_vec3f(cfg, "sky_colour");
+  auto fbSize = toml_to_vec2i(cfg, "fb_size");
+  auto lookAt = toml_to_vec3f(cfg, "look_at");
+  auto lookFrom = toml_to_vec3f(cfg, "look_from");
+  auto lookUp = toml_to_vec3f(cfg, "look_up");
+  float cosFovy = cfg.at("cos_fovy").as_floating();
+  int samples_per_pixel = cfg.at("samples_per_pixel").as_integer();
+  int max_ray_depth = cfg.at("depth").as_integer();
+
+  LOG("Loading model...")
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/dragon/dragon-box.glb";
-  auto world =  assets::import_scene(ai_importer, path);
+  auto world =  assets::import_scene(ai_importer, model_path);
   
   LOG_OK("Loaded world.");
 
   int number_of_photons;
-  auto photonsFromFile = readPhotonsFromFile("photons.txt", number_of_photons);
+  auto photonsFromFile = readPhotonsFromFile(photons_filename, number_of_photons);
   LOG_OK("Loaded photons.");
 
   // Build KD-tree
   LOG("Building KD-tree...");
   Photon *photons;
-  CUKD_CUDA_CALL(MallocManaged((void **)&photons,number_of_photons*sizeof(Photon)));
+  CUKD_CUDA_CALL(MallocManaged(reinterpret_cast<void**>(&photons),number_of_photons*sizeof(Photon)));
   for (int i=0;i<number_of_photons;i++) {
     photons[i].pos = photonsFromFile[i].pos;
     photons[i].dir = photonsFromFile[i].dir;
@@ -187,7 +196,7 @@ int main(int ac, char **av)
   // -------------------------------------------------------
   OWLVarDecl missProgVars[]
     = {
-    { "sky_color", OWL_FLOAT3, OWL_OFFSETOF(MissProgData, sky_color)},
+    { "sky_colour", OWL_FLOAT3, OWL_OFFSETOF(MissProgData, sky_colour)},
     { /* sentinel to mark end of list */ }
   };
 
@@ -200,7 +209,7 @@ int main(int ac, char **av)
                       /* no sbt data: */0,nullptr,-1);
 
   // ----------- set variables  ----------------------------
-  owlMissProgSet3f(missProg,"sky_color", sky_color);
+  owlMissProgSet3f(missProg,"sky_colour", reinterpret_cast<const owl3f&>(sky_colour));
 
   // -------------------------------------------------------
   // set up ray gen program
@@ -213,11 +222,12 @@ int main(int ac, char **av)
     { "camera.dir_00", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_00)},
     { "camera.dir_du", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_du)},
     { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
-    { "sky_color",     OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,sky_color)},
     { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
     { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
     { "photons",      OWL_BUFPTR,       OWL_OFFSETOF(RayGenData,photons)},
     { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
+    { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
+    { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},
     { /* sentinel to mark end of list */ }
   };
 
@@ -254,11 +264,11 @@ int main(int ac, char **av)
   owlRayGenSet3f    (rayGen,"camera.dir_00",reinterpret_cast<const owl3f&>(camera_d00));
   owlRayGenSet3f    (rayGen,"camera.dir_du",reinterpret_cast<const owl3f&>(camera_ddu));
   owlRayGenSet3f    (rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(camera_ddv));
-  owlRayGenSet3f    (rayGen,"sky_color",    sky_color);
   owlRayGenSetBuffer(rayGen,"lights",       light_sources_buffer);
   owlRayGenSet1i    (rayGen,"numLights",    num_lights);
   owlRayGenSetBuffer(rayGen,"photons",      photons_buffer);
-  owlRayGenSet1i    (rayGen,"numPhotons",   number_of_photons);
+  owlRayGenSet1i    (rayGen,"samples_per_pixel",   samples_per_pixel);
+  owlRayGenSet1i    (rayGen,"max_ray_depth",   max_ray_depth);
 
   LOG("building sbt...");
 
@@ -280,9 +290,9 @@ int main(int ac, char **av)
   // for host pinned mem it doesn't matter which device we query...
   auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(frameBuffer, 0));
   assert(fb);
-  stbi_write_png(outFileName,fbSize.x,fbSize.y,4,
+  stbi_write_png(output_filename.c_str(),fbSize.x,fbSize.y,4,
                  fb,fbSize.x*sizeof(uint32_t));
-  LOG_OK("written rendered frame buffer to file "<<outFileName);
+  LOG_OK("written rendered frame buffer to file "<< output_filename);
   // ##################################################################
   // and finally, clean up
   // ##################################################################

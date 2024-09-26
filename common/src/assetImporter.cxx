@@ -5,13 +5,13 @@
 #include <queue>
 #include <set>
 
+#include "mesh.h"
 #include "../../externals/assimp/include/assimp/scene.h"
 #include "../../externals/assimp/include/assimp/postprocess.h"
 
-static std::vector<Mesh> extract_objects(const aiScene*, std::map<std::string, std::pair<double, double>>&);
+static std::vector<Mesh> extract_objects(const aiScene*);
+static void assign_materials(std::vector<Mesh>&,const std::string&);
 static std::vector<LightSource> extract_lights(std::string&);
-
-std::map<std::string, std::pair<double, double>> loadMaterials(const std::string&);
 
 std::unique_ptr<World> assets::import_scene(Assimp::Importer* importer, std::string& path) {
   std::unique_ptr<World> world(new World);
@@ -21,54 +21,15 @@ std::unique_ptr<World> assets::import_scene(Assimp::Importer* importer, std::str
                                             | aiProcess_SortByPType);
 
   assert(scene != nullptr);
-  auto materials = loadMaterials(path);
-  world->meshes = extract_objects(scene, materials);
+
+  world->meshes = extract_objects(scene);
   world->light_sources = extract_lights(path);
+  assign_materials(world->meshes, path);
 
   return world;
 }
 
-
-static std::shared_ptr<Material> mesh_material(
-        const aiScene *scene,
-        const aiMesh *mesh,
-        std::map<std::string,
-                std::pair<double, double>>& materials)
-{
-  const auto material_idx = mesh->mMaterialIndex;
-  const auto material = scene->mMaterials[material_idx];
-
-  MaterialType type = LAMBERTIAN;
-  aiColor3D colour;
-  material->Get(AI_MATKEY_COLOR_DIFFUSE, colour);
-
-  double reflectivity = 0.f;
-  double refract_index = 0.f;
-
-  aiString name;
-  material->Get(AI_MATKEY_NAME,name);
-  const std::string mat_name(name.C_Str());
-
-  if (materials.count(mat_name)) {
-    if (const auto [reflect, ior] = materials.at(mat_name); reflect != 0.0) {
-      type = SPECULAR;
-      reflectivity = reflect;
-    } else if (ior != 0.0) {
-      type = GLASS;
-      refract_index = ior;
-    }
-  }
-
-  auto mat = std::make_shared<Material>();
-  mat->albedo = owl::vec3f(colour.r, colour.g, colour.b);
-  mat->surface_type = type;
-  mat->reflectivity = reflectivity;
-  mat->refraction_idx = refract_index;
-
-  return mat;
-}
-
-static std::vector<Mesh> extract_objects(const aiScene *scene, std::map<std::string, std::pair<double, double>>& materials) {
+static std::vector<Mesh> extract_objects(const aiScene *scene) {
   std::queue<std::pair<aiNode*, aiMatrix4x4>> unprocessed_nodes;
   unprocessed_nodes.emplace(scene->mRootNode, aiMatrix4x4());
 
@@ -121,14 +82,17 @@ static std::vector<Mesh> extract_objects(const aiScene *scene, std::map<std::str
       Mesh output_mesh;
       output_mesh.vertices = verts;
       output_mesh.indices = idx;
-      output_mesh.material = mesh_material(scene, current_mesh, materials);
+
+      aiString name;
+      const auto material_idx = current_mesh->mMaterialIndex;
+      scene->mMaterials[material_idx]->Get(AI_MATKEY_NAME,name);
+      output_mesh.name = name.C_Str();
 
       meshes.push_back(output_mesh);
     }
   }
   return meshes;
 }
-
 
 static std::vector<LightSource> extract_lights(std::string& path) {
   const std::size_t last_slash = path.find_last_of("/\\");
@@ -146,6 +110,11 @@ static std::vector<LightSource> extract_lights(std::string& path) {
 
   std::string line;
   while (std::getline(file, line)) {
+    // Skip empty lines and comments
+    if (line.empty() || line[0] == '#') {
+      continue;
+    }
+
     std::istringstream iss(line);
     LightSource light;
 
@@ -163,34 +132,73 @@ static std::vector<LightSource> extract_lights(std::string& path) {
   return lightSources;
 }
 
-std::map<std::string, std::pair<double, double>> loadMaterials(const std::string& path) {
-  const std::size_t last_slash = path.find_last_of("/\\");
-  const auto base_path = path.substr(0,last_slash);
+using MaterialProperties = std::tuple<owl::vec3f, float, float, float, float>;
+using MaterialMap = std::map<std::string, MaterialProperties>;
 
-  auto filename = base_path + "/materials.txt";
+static MaterialMap readMaterialFile(const std::string& path) {
+  const std::size_t last_dot = path.find_last_of('.');
+  const auto base_path = path.substr(0,last_dot);
+
+  std::string filename = last_dot + ".mtl";
   std::replace(filename.begin(), filename.end(), '/', '\\');
 
-  std::map<std::string, std::pair<double, double>> materials;
+  MaterialMap materials_map;
   std::ifstream file(filename);
 
   if (!file.is_open()) {
-    std::cerr << "Error opening file: " << filename << std::endl;
-    return materials;
+    std::cerr << "Error: Unable to open file " << filename << std::endl;
+    return materials_map;
   }
 
   std::string line;
   while (std::getline(file, line)) {
-    std::istringstream iss(line);
-    std::string material_name;
-    double specularity, ior;
+    // Skip empty lines and comments
+    if (line.empty() || line[0] == '#') {
+      continue;
+    }
 
-    if (iss >> material_name >> specularity >> ior) {
-      materials[material_name] = std::make_pair(specularity, ior);
+    std::istringstream iss(line);
+    std::string name;
+    float albedo_r, albedo_g, albedo_b, diffuse, specular, transmission, refraction_idx;
+
+    if (iss >> name >> albedo_r >> albedo_g >> albedo_b >> diffuse >> specular >> transmission >> refraction_idx) {
+      auto albedo = owl::vec3f(albedo_r, albedo_g, albedo_b);
+      materials_map[name] = std::make_tuple(albedo, diffuse, specular, transmission, refraction_idx);
     } else {
-      std::cerr << "Error parsing line: " << line << std::endl;
+      std::cerr << "Warning: Invalid line format: " << line << std::endl;
     }
   }
 
   file.close();
-  return materials;
+  return materials_map;
+}
+
+static void assign_materials(std::vector<Mesh>& meshes, const std::string& path) {
+  using namespace owl;
+
+  const MaterialMap mat_map = readMaterialFile(path);
+
+  Material default_material;
+  default_material.albedo = vec3f(1.,1.,1.);
+  default_material.diffuse = 1.f;
+  default_material.specular = 0.f;
+  default_material.transmission = 0.f;
+  default_material.refraction_idx = 0.f;
+
+  /* Unsure if structured bindings are a good idea here */
+  for (auto & [name, _v, _i, material]: meshes) {
+    if (mat_map.count(name) == 0) {
+      material = std::make_shared<Material>(default_material);
+      continue;
+    }
+
+    auto current_mat = mat_map.at("name");
+    Material mesh_mat;
+    mesh_mat.albedo = std::get<0>(current_mat);
+    mesh_mat.diffuse = std::get<1>(current_mat);
+    mesh_mat.specular = std::get<2>(current_mat);
+    mesh_mat.transmission = std::get<3>(current_mat);
+    mesh_mat.refraction_idx = std::get<4>(current_mat);
+    material = std::make_shared<Material>(mesh_mat);
+  }
 }

@@ -1,0 +1,16 @@
+[ray-tracer]
+sky_colour = [1.0, 1.0, 1.0]
+
+output_filename = "result.png"
+fb_size = [800, 600]
+
+look_from = [80.0, 30.0, 0.0]
+look_at = [10.0, 20.0, 0.0]
+look_up = [0.0, -1.0, 0.0]
+cos_fovy = 0.66
+
+photons_file = "photons.txt"
+model_path = "../assets/models/dragon/dragon-box.glb"
+
+samples_per_pixel = 24
+depth = 30
