@@ -71,9 +71,9 @@ int main(int ac, char **av)
   auto lookAt = toml_to_vec3f(cfg, "look_at");
   auto lookFrom = toml_to_vec3f(cfg, "look_from");
   auto lookUp = toml_to_vec3f(cfg, "look_up");
-  float cosFovy = cfg.at("cos_fovy").as_floating();
-  int samples_per_pixel = cfg.at("samples_per_pixel").as_integer();
-  int max_ray_depth = cfg.at("depth").as_integer();
+  float cosFovy = static_cast<float>(cfg.at("cos_fovy").as_floating());
+  int samples_per_pixel = static_cast<int>(cfg.at("samples_per_pixel").as_integer());
+  int max_ray_depth = static_cast<int>(cfg.at("depth").as_integer());
 
   LOG("Loading model...")
   auto *ai_importer = new Assimp::Importer;
