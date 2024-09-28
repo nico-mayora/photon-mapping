@@ -24,5 +24,4 @@ struct PhotonViewerRGD
 struct PhotonViewerPRD
 {
     bool hit;
-    float maxDistance;
 };

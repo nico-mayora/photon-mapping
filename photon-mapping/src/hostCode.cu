@@ -112,11 +112,11 @@ int main(int ac, char **av)
   LOG("launching ...")
 
   for (auto light : world->light_sources) {
-    setPointLightRayGenVariables(program, light, owl::vec2i (100, 100));
+    setPointLightRayGenVariables(program, light, owl::vec2i (200, 200));
 
     owlBuildSBT(program.owlContext);
 
-    owlRayGenLaunch2D(program.rayGen,100,100);
+    owlRayGenLaunch2D(program.rayGen,200,200);
   }
 
   LOG("done with launch, writing picture ...")

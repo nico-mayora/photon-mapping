@@ -11,16 +11,25 @@ inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
     return owl::vec3f(owl::clamp(v.x, f), owl::clamp(v.y, f), owl::clamp(v.z, f));
 }
 
-inline __device__ owl::vec3f randomPointInUnitSphere(Random &rnd) {
-    owl::vec3f p;
-    do {
-        p = 2.0f*RANDVEC3F - owl::vec3f(1, 1, 1);
-    } while (dot(p,p) >= 1.0f);
-    return p;
+inline __device__ owl::vec3f randomPointInUnitSphere(Random &random) {
+  const double u = random();
+  const double v = random();
+  const double theta = 2.0 * M_PI * u;
+  const double phi = acos(2.0 * v - 1.0);
+
+  return owl::vec3f(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
 }
 
-inline __device__ owl::vec3f reflect(const owl::vec3f &u, const owl::vec3f &v) {
-    return u - 2 * dot(u, v) * v;
+inline __device__ owl::vec3f cosineSampleHemisphere(const owl::vec3f &normal, Random &random) {
+  return normal + randomPointInUnitSphere(random) * 0.99f;
+}
+
+inline __device__ owl::vec3f reflect(const owl::vec3f &incoming, const owl::vec3f &normal) {
+    return incoming - 2.f * dot(incoming, normal) * normal;
+}
+
+inline __device__ owl::vec3f reflectDiffuse(const owl::vec3f &normal, Random &random) {
+    return cosineSampleHemisphere(normal, random);
 }
 
 inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {
@@ -32,6 +41,10 @@ inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {
     const vec3f &C     = self.vertex[index.z];
 
     return normalize(cross(B-A,C-A));
+}
+
+inline __device__ owl::vec3f multiplyColor(const owl::vec3f &a, const owl::vec3f &b) {
+    return owl::vec3f(a.x * b.x, a.y * b.y, a.z * b.z);
 }
 
 inline __device__ void scatterLambertian(PerRayData& prd, const TrianglesGeomData& self) {

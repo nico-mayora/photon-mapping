@@ -34,5 +34,6 @@ struct PhotonMapperPRD
     struct {
         owl::vec3f origin;
         owl::vec3f direction;
+        owl::vec3f color;
     } scattered;
 };

@@ -6,11 +6,11 @@
 typedef owl::LCG<> Random;
 
 enum RayEvent {
-    Refraction,
-    ReflectedSpecular,
-    ReflectedDiffuse,
-    Absorbed,
-    Missed,
+    Missed = 0,
+    Absorbed = 1,
+    ReflectedDiffuse = 2,
+    ReflectedSpecular = 4,
+    Refraction = 8,
 };
 
 struct PerRayData {
