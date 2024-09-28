@@ -12,8 +12,10 @@
 #include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
 #include "../../common/src/configLoader.h"
-#include "assimp/Importer.hpp"
+#include <assimp/Importer.hpp>
 #include <cukd/builder.h>
+#include <cukd/knn.h>
+
 
 #define CONFIG_PATH "../config.toml"
 
@@ -88,14 +90,20 @@ int main(int ac, char **av)
   // Build KD-tree
   LOG("Building KD-tree...");
   Photon *photons;
-  CUKD_CUDA_CALL(MallocManaged(reinterpret_cast<void**>(&photons),number_of_photons*sizeof(Photon)));
-  for (int i=0;i<number_of_photons;i++) {
+
+  CUKD_CUDA_CALL(MallocManaged((void**)&photons,number_of_photons*sizeof(Photon)));
+  for (int i=0; i<number_of_photons; i++) {
     photons[i].pos = photonsFromFile[i].pos;
     photons[i].dir = photonsFromFile[i].dir;
     photons[i].color = photonsFromFile[i].color;
   }
   cukd::buildTree<Photon,Photon_traits>(photons,number_of_photons);
   printf("Number of photons: %d\n", number_of_photons);
+
+  for (int i=0; i<5; i++) {
+    printf("photon %d: %f %f %f\n", i, photons[i].pos.x, photons[i].pos.y, photons[i].pos.z);
+  }
+
   LOG_OK("Built KD-tree.");
 
   // create a context on the first device:
@@ -224,13 +232,12 @@ int main(int ac, char **av)
     { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
     { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
     { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
-    { "photons",      OWL_BUFPTR,       OWL_OFFSETOF(RayGenData,photons)},
+    { "photons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,photons)},
     { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
     { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
     { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},
     { /* sentinel to mark end of list */ }
   };
-
 
   // ----------- create object  ----------------------------
   OWLRayGen rayGen
@@ -254,8 +261,6 @@ int main(int ac, char **av)
   OWLBuffer light_sources_buffer =  owlDeviceBufferCreate(context,
     OWL_USER_TYPE(LightSource),world->light_sources.size(), world->light_sources.data());
 
-  OWLBuffer photons_buffer = owlDeviceBufferCreate(context, OWL_USER_TYPE(Photon), number_of_photons, photonsFromFile);
-
   // ----------- set variables  ----------------------------
   owlRayGenSetBuffer(rayGen,"fbPtr",        frameBuffer);
   owlRayGenSet2i    (rayGen,"fbSize",       reinterpret_cast<const owl2i&>(fbSize));
@@ -266,7 +271,8 @@ int main(int ac, char **av)
   owlRayGenSet3f    (rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(camera_ddv));
   owlRayGenSetBuffer(rayGen,"lights",       light_sources_buffer);
   owlRayGenSet1i    (rayGen,"numLights",    num_lights);
-  owlRayGenSetBuffer(rayGen,"photons",      photons_buffer);
+  owlRayGenSetPointer(rayGen,"photons",      photons);
+  owlRayGenSet1i    (rayGen, "numPhotons", number_of_photons);
   owlRayGenSet1i    (rayGen,"samples_per_pixel",   samples_per_pixel);
   owlRayGenSet1i    (rayGen,"max_ray_depth",   max_ray_depth);
 
