@@ -191,6 +191,7 @@ static void assign_materials(std::vector<Mesh>& meshes, const std::string& path)
       material = std::make_shared<Material>(default_material);
       continue;
     }
+
     auto current_mat = mat_map.at(name);
     Material mesh_mat;
     mesh_mat.albedo = std::get<0>(current_mat);

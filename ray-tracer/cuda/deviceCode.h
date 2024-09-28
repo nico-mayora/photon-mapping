@@ -2,6 +2,7 @@
 
 #include <owl/owl.h>
 #include <owl/common/math/vec.h>
+#include <owl/common/math/random.h>
 #include <cukd/data.h>
 #include "../../common/src/mesh.h"
 
@@ -64,3 +65,17 @@ struct MissProgData
     owl::vec3f  sky_colour;
 };
 
+typedef owl::LCG<> Random;
+
+struct PerRayData {
+    Random random;
+    owl::vec3f colour;
+    owl::vec3f hit_point;
+
+    struct {
+        owl::Ray ray;
+        owl::vec3f normal_at_hitpoint;
+    } scattered;
+
+    float attenuation;
+};

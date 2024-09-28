@@ -4,11 +4,20 @@
 #include "../src/mesh.h"
 
 #define RANDVEC3F owl::vec3f(rnd(),rnd(),rnd())
+#define INFTY 1e10
 #define EPS 1e-3f
-#define DIFFUSE_COEF 1.f
+#define PI float(3.141592653)
 
 inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
     return owl::vec3f(owl::clamp(v.x, f), owl::clamp(v.y, f), owl::clamp(v.z, f));
+}
+
+inline __device__ bool nearZero(const owl::vec3f& v) {
+    return v.x < EPS && v.y < EPS && v.z < EPS;
+}
+
+inline __device__ bool isZero(const owl::vec3f& v) {
+    return v.x == 0.f && v.y == 0.f && v.z == 0.f;
 }
 
 inline __device__ float norm(owl::vec3f v) {
@@ -44,6 +53,12 @@ bool refract(const owl::vec3f& v,
     return false;
 }
 
+inline __device__ float schlickFresnelAprox(const float cos, const float ior) {
+    float r0 = (1. - ior) / (1. + ior);
+    r0 = r0 * r0;
+    return r0 + (1. - r0) * pow(1. - cos, 5);
+}
+
 inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {
     using namespace owl;
     const unsigned int primID = optixGetPrimitiveIndex();
@@ -53,10 +68,4 @@ inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {
     const vec3f &C     = self.vertex[index.z];
 
     return normalize(cross(B-A,C-A));
-}
-
-inline __device__ float schlickFresnelAprox(const float cos, const float ior) {
-  float r0 = (1. - ior) / (1. + ior);
-  r0 = r0 * r0;
-  return r0 + (1. - r0) * pow(1. - cos, 5);
 }
