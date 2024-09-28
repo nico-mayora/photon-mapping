@@ -50,3 +50,9 @@ inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {
 
     return normalize(cross(B-A,C-A));
 }
+
+inline __device__ float schlickFresnelAprox(const float cos, const float ior) {
+  float r0 = (1. - ior) / (1. + ior);
+  r0 = r0 * r0;
+  return r0 + (1. - r0) * pow(1. - cos, 5);
+}
