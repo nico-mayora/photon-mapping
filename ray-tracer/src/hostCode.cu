@@ -11,10 +11,16 @@
 #include "../../common/src/assetImporter.h"
 #include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
+#include "../../common/src/configLoader.h"
+#include <assimp/Importer.hpp>
 #include "assimp/Importer.hpp"
 #include "../include/program.h"
 #include "../../common/src/common.h"
 #include <cukd/builder.h>
+#include <cukd/knn.h>
+
+
+#define CONFIG_PATH "../config.toml"
 
 constexpr owl3f sky_color = owl3f { 255./255., 255./255., 255./255. };
 
@@ -111,11 +117,12 @@ void setupRaygenProgram(Program &program) {
           { "camera.dir_00", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_00)},
           { "camera.dir_du", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_du)},
           { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
-          { "sky_color",     OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,sky_color)},
           { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
           { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
-          { "photons",      OWL_BUFPTR,       OWL_OFFSETOF(RayGenData,photons)},
+          { "photons",      OWL_RAW_POINTER,       OWL_OFFSETOF(RayGenData,photons)},
           { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
+          { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
+          { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},
           { /* sentinel to mark end of list */ }
   };
 
@@ -131,16 +138,33 @@ void setupRaygenProgram(Program &program) {
   owlRayGenSet3f    (program.rayGen,"camera.dir_00",reinterpret_cast<const owl3f&>(program.camera.dir_00));
   owlRayGenSet3f    (program.rayGen,"camera.dir_du",reinterpret_cast<const owl3f&>(program.camera.dir_du));
   owlRayGenSet3f    (program.rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(program.camera.dir_dv));
-  owlRayGenSet3f    (program.rayGen,"sky_color",    sky_color);
   owlRayGenSetBuffer(program.rayGen,"lights",       program.lightsBuffer);
   owlRayGenSet1i    (program.rayGen,"numLights",    program.numLights);
-  owlRayGenSetBuffer(program.rayGen,"photons",      program.photonsBuffer);
+  owlRayGenSetPointer(program.rayGen,"photons",      program.photonsBuffer);
   owlRayGenSet1i    (program.rayGen,"numPhotons",   program.numPhotons);
+  owlRayGenSet1i    (program.rayGen,"samples_per_pixel", program.samples_per_pixel);
+  owlRayGenSet1i    (program.rayGen,"max_ray_depth", program.max_ray_depth);
 }
 
 int main(int ac, char **av)
 {
   LOG("Starting up...");
+
+  LOG("Loading Config file...")
+
+  auto cfg = parse_config(CONFIG_PATH).at("ray-tracer");
+
+  auto photons_filename = cfg.at("photons_file").as_string();
+  auto model_path = cfg.at("model_path").as_string();
+  auto output_filename = cfg.at("output_filename").as_string();
+  auto sky_colour = toml_to_vec3f(cfg, "sky_colour");
+  auto fbSize = toml_to_vec2i(cfg, "fb_size");
+  auto lookAt = toml_to_vec3f(cfg, "look_at");
+  auto lookFrom = toml_to_vec3f(cfg, "look_from");
+  auto lookUp = toml_to_vec3f(cfg, "look_up");
+  float cosFovy = static_cast<float>(cfg.at("cos_fovy").as_floating());
+  int samples_per_pixel = static_cast<int>(cfg.at("samples_per_pixel").as_integer());
+  int max_ray_depth = static_cast<int>(cfg.at("depth").as_integer());
 
   auto *ai_importer = new Assimp::Importer;
   std::string path = "../assets/models/dragon/dragon-box.glb";

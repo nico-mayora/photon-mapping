@@ -4,8 +4,9 @@
 #include "../src/mesh.h"
 
 #define RANDVEC3F owl::vec3f(rnd(),rnd(),rnd())
+#define INFTY 1e10
 #define EPS 1e-3f
-#define DIFFUSE_COEF 1.f
+#define PI float(3.141592653)
 
 inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
     return owl::vec3f(owl::clamp(v.x, f), owl::clamp(v.y, f), owl::clamp(v.z, f));
@@ -18,6 +19,22 @@ inline __device__ owl::vec3f randomPointInUnitSphere(Random &random) {
   const double phi = acos(2.0 * v - 1.0);
 
   return owl::vec3f(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
+}
+
+inline __device__ bool nearZero(const owl::vec3f& v) {
+    return v.x < EPS && v.y < EPS && v.z < EPS;
+}
+
+inline __device__ bool isZero(const owl::vec3f& v) {
+    return v.x == 0.f && v.y == 0.f && v.z == 0.f;
+}
+
+inline __device__ owl::vec3f randomPointInUnitSphere(Random &rnd) {
+    owl::vec3f p;
+    do {
+        p = 2.0f*RANDVEC3F - owl::vec3f(1, 1, 1);
+    } while (dot(p,p) >= 1.0f);
+    return p;
 }
 
 inline __device__ owl::vec3f cosineSampleHemisphere(const owl::vec3f &normal, Random &random) {
@@ -132,49 +149,8 @@ bool refract(const owl::vec3f& v,
     return false;
 }
 
-inline __device__ void scatterGlass(PerRayData& prd, const TrianglesGeomData& self) {
-    using namespace owl;
-
-    const vec3f rayDir = normalize(static_cast<vec3f>(optixGetWorldRayDirection()));
-    const vec3f rayOrg = optixGetWorldRayOrigin();
-    const auto tmax = optixGetRayTmax();
-    const auto material = *self.material;
-    vec3f normal = getPrimitiveNormal(self);
-
-    vec3f outward_normal;
-    vec3f reflected = reflect(rayDir, normal);
-    float ni_over_nt;
-    prd.colour = vec3f(1.f, 1.f, 1.f);
-    vec3f refracted;
-    float reflect_prob;
-    float cosine;
-
-    if (dot(rayDir, normal) > 0.f) {
-        outward_normal = -normal;
-        ni_over_nt = material.refraction_idx;
-        cosine = dot(rayDir, normal);
-        cosine = sqrtf(1.f - material.refraction_idx*material.refraction_idx*(1.f-cosine*cosine));
-    }
-    else {
-        outward_normal = normal;
-        ni_over_nt = 1.0 / material.refraction_idx;
-        cosine = -dot(rayDir, normal);// / vec3f(dir).length();
-    }
-    if (refract(rayDir, outward_normal, ni_over_nt, refracted))
-        reflect_prob = schlickReflectance(cosine, material.refraction_idx);
-    else
-        reflect_prob = 1.f;
-
-    prd.scattered.s_origin = rayOrg + tmax * rayDir;
-    if (prd.random() < reflect_prob) {
-        prd.scattered.s_direction = reflected;
-    } else {
-        prd.scattered.s_direction = refracted;
-    }
-
-    prd.scattered.normal_at_hitpoint = normal;
-    prd.event = Refraction;
-    prd.material.diffuseCoefficient = 0.f; // material.diffuseCoefficient when we have it stored
-    prd.material.reflectivity = 0.f; // material.reflectivity;  if we allow multiple coefs per material
-    prd.material.refraction_idx = material.refraction_idx;
+inline __device__ float schlickFresnelAprox(const float cos, const float ior) {
+    float r0 = (1. - ior) / (1. + ior);
+    r0 = r0 * r0;
+    return r0 + (1. - r0) * pow(1. - cos, 5);
 }
