@@ -1,8 +1,12 @@
 #pragma once
 
 #include "owl/include/owl/owl.h"
-#include "../../common/src/camera.h"
+#include "owl/include/owl/common/math/vec.h"
+#include "owl/include/owl/common/math/random.h"
+#include "../../common/src/material.h"
+#include "../../common/src/light.h"
 #include "photon.h"
+#include "../../common/src/camera.h"
 
 /* variables for the ray generation program */
 struct PhotonViewerRGD
@@ -14,11 +18,11 @@ struct PhotonViewerRGD
     int numPhotons;
 
     OptixTraversableHandle world;
-    Camera camera;
+    owl::vec3f cameraPos;
 };
 
 struct PhotonViewerPRD
 {
     bool hit;
-    owl::vec3f hitPoint;
+    float maxDistance;
 };

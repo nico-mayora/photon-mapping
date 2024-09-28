@@ -2,10 +2,10 @@
 
 #include "owl/common/math/vec.h"
 
-struct Photon
-{
+struct Photon {
+    // Data for the photon
     owl::vec3f pos;
     owl::vec3f dir;
-    int power;
     owl::vec3f color;
+    owl::vec2i pixel;
 };

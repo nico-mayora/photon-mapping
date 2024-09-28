@@ -19,8 +19,6 @@ struct Program {
 
     OWLBuffer photonsBuffer;
     int numPhotons;
-    OWLBuffer lightsBuffer;
-    int numLights;
 
     Camera camera;
 };

@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "owl/common/math/vec.h"
+#include "owl/owl.h"
 #include "mesh.h"
 #include "light.h"
 
@@ -14,3 +15,12 @@ struct World {
     std::vector<Mesh> meshes;
     unsigned int photons_num;
 };
+
+struct GeometryData {
+    std::vector<OWLGeom> geometry;
+    OWLGeomType trianglesGeomType;
+    OWLGroup trianglesGroup;
+    OWLGroup worldGroup;
+};
+
+GeometryData loadGeometry(OWLContext &owlContext, const std::unique_ptr<World> &world);

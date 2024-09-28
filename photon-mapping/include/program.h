@@ -12,15 +12,8 @@ struct Program {
     OWLModule owlModule;
     OWLRayGen rayGen;
 
-    OWLBuffer frameBuffer;
-    owl::vec2i frameBufferSize;
-
     GeometryData geometryData;
 
     OWLBuffer photonsBuffer;
-    int numPhotons;
-    OWLBuffer lightsBuffer;
-    int numLights;
-
-    Camera camera;
+    OWLBuffer photonsCount;
 };

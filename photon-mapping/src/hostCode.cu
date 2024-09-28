@@ -11,6 +11,7 @@
 #include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
 #include "assimp/Importer.hpp"
+#include "../include/program.h"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -26,7 +27,7 @@ auto outFileName = "result.png";
 
 extern "C" char deviceCode_ptx[];
 
-void writeAlivePhotons(const Photon* photons, const std::string& filename) {
+void writeAlivePhotons(const Photon* photons, int count, const std::string& filename) {
   std::ofstream outFile(filename);
 
   if (!outFile.is_open()) {
@@ -36,20 +37,42 @@ void writeAlivePhotons(const Photon* photons, const std::string& filename) {
 
   outFile << std::fixed << std::setprecision(6);
 
-  for (int i = 0; i < MAX_PHOTONS * MAX_RAY_BOUNCES; i++) {
+  for (int i = 0; i < count; i++) {
     auto photon = photons[i];
-    if (photon.is_alive) {
-      outFile << photon.pos.x << " " << photon.pos.y << " " << photon.pos.z << " "
-              << photon.dir.x << " " << photon.dir.y << " " << photon.dir.z << " "
-              << photon.color.x << " " << photon.color.y << " " << photon.color.z << "\n";
-    }
+    outFile << photon.pos.x << " " << photon.pos.y << " " << photon.pos.z << " "
+            << photon.dir.x << " " << photon.dir.y << " " << photon.dir.z << " "
+            << photon.color.x << " " << photon.color.y << " " << photon.color.z << "\n";
   }
 
   outFile.close();
 }
 
-void writePhotonsToImage(const Photon* photons, const std::string& filename) {
+void setupPointLightRayGenProgram(Program &program) {
+  OWLVarDecl rayGenVars[] = {
+          { "photons",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photons)},
+          { "photonsCount",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photonsCount)},
+          { "dims",OWL_INT2,OWL_OFFSETOF(PointLightRGD,dims)},
+          { "world",OWL_GROUP,OWL_OFFSETOF(PointLightRGD,world)},
+          { "position",OWL_FLOAT3,OWL_OFFSETOF(PointLightRGD,position)},
+          { "color",OWL_FLOAT3,OWL_OFFSETOF(PointLightRGD,color)},
+          { "intensity",OWL_FLOAT,OWL_OFFSETOF(PointLightRGD,intensity)},
+          { /* sentinel to mark end of list */ }
+  };
 
+  program.rayGen = owlRayGenCreate(program.owlContext,program.owlModule,"pointLightRayGen",
+                                   sizeof(PointLightRGD),
+                                   rayGenVars,-1);
+
+  owlRayGenSetBuffer(program.rayGen,"photons",program.photonsBuffer);
+  owlRayGenSetBuffer(program.rayGen,"photonsCount",program.photonsCount);
+  owlRayGenSetGroup(program.rayGen,"world",program.geometryData.worldGroup);
+}
+
+void setPointLightRayGenVariables(Program &program, const LightSource &light, owl::vec2i dims) {
+  owlRayGenSet2i(program.rayGen,"dims",reinterpret_cast<const owl2i&>(dims));
+  owlRayGenSet3f(program.rayGen,"position",reinterpret_cast<const owl3f&>(light.pos));
+  owlRayGenSet3f(program.rayGen,"color",reinterpret_cast<const owl3f&>(light.rgb));
+  owlRayGenSet1f(program.rayGen,"intensity",light.power);
 }
 
 int main(int ac, char **av)
@@ -66,180 +89,45 @@ int main(int ac, char **av)
     light.num_photons = static_cast<int>(light.power / totalPower * MAX_PHOTONS);
   }
 
+  Program program;
 
+  program.owlContext = owlContextCreate(nullptr,1);
+  program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
+  owlContextSetRayTypeCount(program.owlContext, 1);
 
-  LOG_OK("Loaded world.");
+  program.geometryData = loadGeometry(program.owlContext, world);
 
-  // create a context on the first device:
-  OWLContext context = owlContextCreate(nullptr,1);
-  OWLModule module = owlModuleCreate(context, deviceCode_ptx);
+  owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType, 0, program.owlModule,"triangleMeshClosestHit");
+  owlMissProgCreate(program.owlContext, program.owlModule, "miss", 0, nullptr, -1);
 
-  // ##################################################################
-  // set up all the *GEOMETRY* graph we want to render
-  // ##################################################################
+  program.photonsBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_USER_TYPE(Photon),MAX_PHOTONS * MAX_RAY_BOUNCES);
+  program.photonsCount = owlHostPinnedBufferCreate(program.owlContext, OWL_INT, 1);
+  owlBufferClear(program.photonsCount);
 
-  // -------------------------------------------------------
-  // declare geometry type
-  // -------------------------------------------------------
+  setupPointLightRayGenProgram(program);
 
-  OWLVarDecl trianglesGeomVars[] = {
-    { "index",  OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,index)},
-    { "vertex", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,vertex)},
-    { "material", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,material)},
-    { nullptr /* Sentinel to mark end-of-list */}
-  };
+  owlBuildPrograms(program.owlContext);
+  owlBuildPipeline(program.owlContext);
 
-  OWLGeomType trianglesGeomType
-    = owlGeomTypeCreate(context,
-                        OWL_TRIANGLES,
-                        sizeof(TrianglesGeomData),
-                        trianglesGeomVars,-1);
-  owlGeomTypeSetClosestHit(trianglesGeomType, 0,
-                           module,"TriangleMesh");
+  LOG("launching ...")
 
-  // ##################################################################
-  // set up all the *GEOMS* we want to run that code on
-  // ##################################################################
+  for (auto light : world->light_sources) {
+    setPointLightRayGenVariables(program, light, owl::vec2i (100, 100));
 
-  LOG("building geometries ...");
+    owlBuildSBT(program.owlContext);
 
-  // ------------------------------------------------------------------
-  // triangle mesh
-  // ------------------------------------------------------------------
-  std::vector<OWLGeom> geoms;
-  const int numMeshes = static_cast<int>(world->meshes.size());
-
-  for (int meshID=0; meshID<numMeshes; meshID++) {
-    auto mesh = world->meshes[meshID];
-    std::cout << "ID: " << meshID << " | mat: " << mesh.material->albedo << '\n';
-    for (const auto & v : mesh.vertices)
-      std::cout << "v " << v << '\n';
-
-    for (const auto & i : mesh.indices)
-      std::cout << "v " << i << '\n';
-
-
-    OWLBuffer vertexBuffer
-      = owlDeviceBufferCreate(context,OWL_FLOAT3,mesh.vertices.size(), mesh.vertices.data());
-    OWLBuffer indexBuffer
-      = owlDeviceBufferCreate(context,OWL_INT3,mesh.indices.size(), mesh.indices.data());
-    OWLBuffer materialBuffer
-      = owlDeviceBufferCreate(context,OWL_USER_TYPE(Material),1, &mesh.material);
-
-    OWLGeom trianglesGeom
-      = owlGeomCreate(context,trianglesGeomType);
-
-    owlTrianglesSetVertices(trianglesGeom,vertexBuffer,
-                            mesh.vertices.size(),sizeof(owl::vec3f),0);
-    owlTrianglesSetIndices(trianglesGeom,indexBuffer,
-                           mesh.indices.size(),sizeof(owl::vec3i),0);
-
-    owlGeomSetBuffer(trianglesGeom,"vertex",vertexBuffer);
-    owlGeomSetBuffer(trianglesGeom,"index",indexBuffer);
-    owlGeomSetBuffer(trianglesGeom,"material", materialBuffer);
-
-    geoms.push_back(trianglesGeom);
+    owlRayGenLaunch2D(program.rayGen,100,100);
   }
 
-  // ------------------------------------------------------------------
-  // the group/accel for that mesh
-  // ------------------------------------------------------------------
-  OWLGroup trianglesGroup
-    = owlTrianglesGeomGroupCreate(context,geoms.size(),geoms.data());
-  owlGroupBuildAccel(trianglesGroup);
-  OWLGroup owl_world
-    = owlInstanceGroupCreate(context,1);
-  owlInstanceGroupSetChild(owl_world,0,trianglesGroup);
-  owlGroupBuildAccel(owl_world);
-
-
-  // ##################################################################
-  // set miss and raygen program required for SBT
-  // ##################################################################
-
-  // -------------------------------------------------------
-  // set up miss prog
-  // -------------------------------------------------------
-  owl::vec3f sky_colour = { 42./255., 169./255., 238./255. };
-  OWLVarDecl missProgVars[]
-    = {
-    { "sky_color", OWL_FLOAT3, OWL_OFFSETOF(MissProgData, sky_color)},
-    { /* sentinel to mark end of list */ }
-  };
-
-  // ----------- create object  ----------------------------
-  OWLMissProg missProg
-          = owlMissProgCreate(context,module,"miss",sizeof(MissProgData),
-                              missProgVars,-1);
-
-  // ----------- set variables  ----------------------------
-  owlMissProgSet3f(missProg,"sky_color", owl3f {42./255., 169./255., 238./255.});
-
-  // -------------------------------------------------------
-  // set up ray gen program
-  // -------------------------------------------------------
-  OWLVarDecl rayGenVars[] = {
-          { "photons", OWL_BUFPTR, OWL_OFFSETOF(RayGenData,photons)},
-          { "photonsCount", OWL_BUFPTR, OWL_OFFSETOF(RayGenData,photonsCount)},
-          { "world", OWL_GROUP, OWL_OFFSETOF(RayGenData,world)},
-          { "lightsNum", OWL_INT, OWL_OFFSETOF(RayGenData,lightsNum)},
-          { "lightSources", OWL_BUFPTR, OWL_OFFSETOF(RayGenData,lightSources)},
-          { /* sentinel to mark end of list */ }
-  };
-
-  // ----------- create object  ----------------------------
-  OWLRayGen rayGen
-          = owlRayGenCreate(context,module,"simpleRayGen",
-                            sizeof(RayGenData),
-                            rayGenVars,-1);
-
-  // ----------- compute variable values  ------------------
-  int numLights = world->light_sources.size();
-  auto lightSourcesBuffer = owlDeviceBufferCreate(context,OWL_USER_TYPE(LightSource),numLights, world->light_sources.data());
-
-  // ----------- set variables  ----------------------------
-  OWLBuffer photonBuffer = owlHostPinnedBufferCreate(context,OWL_USER_TYPE(Photon),MAX_PHOTONS * MAX_RAY_BOUNCES);
-
-  OWLBuffer photonsCount = owlHostPinnedBufferCreate(context, OWL_INT, 1);
-  owlBufferClear(photonsCount);
-
-  owlRayGenSetBuffer(rayGen, "photons", photonBuffer);
-  owlRayGenSetBuffer(rayGen, "photonsCount", photonsCount);
-  owlRayGenSetGroup(rayGen, "world", owl_world);
-  owlRayGenSet1i(rayGen, "lightsNum", numLights);
-  owlRayGenSetBuffer(rayGen, "lightSources", lightSourcesBuffer);
-
-  // ##################################################################
-  // build *SBT* required to trace the groups
-  // ##################################################################
-  owlBuildPrograms(context);
-  owlBuildPipeline(context);
-  owlBuildSBT(context);
-
-  // ##################################################################
-  // now that everything is ready: launch it ....
-  // ##################################################################
-
-  LOG("launching ...");
-  owlRayGenLaunch2D(rayGen,MAX_PHOTONS,1);
-
-  LOG("done with launch, writing picture ...");
+  LOG("done with launch, writing picture ...")
   // for host pinned mem it doesn't matter which device we query...
-  auto *fb = static_cast<const Photon*>(owlBufferGetPointer(photonBuffer, 0));
+  auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.photonsBuffer, 0));
+  auto count = *(int*)owlBufferGetPointer(program.photonsCount, 0);
 
-  std::cout << *(int*)owlBufferGetPointer(photonsCount, 0);
-
-  assert(fb);
-
-  writeAlivePhotons(fb, "photons.txt");
-
-  LOG_OK("written rendered frame buffer to file "<<outFileName);
-  // ##################################################################
-  // and finally, clean up
-  // ##################################################################
+  writeAlivePhotons(fb, count, "photons.txt");
 
   LOG("destroying devicegroup ...");
-  owlContextDestroy(context);
+  owlContextDestroy(program.owlContext);
 
   LOG_OK("seems all went OK; app is done, this should be the last output ...");
   return 0;
