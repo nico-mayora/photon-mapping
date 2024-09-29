@@ -4,7 +4,6 @@
 #include "owl/include/owl/common/math/vec.h"
 #include "owl/include/owl/common/math/random.h"
 #include "photon.h"
-#include "../../common/src/ray.h"
 
 #define MAX_RAY_BOUNCES 200
 #define MAX_PHOTONS 100000

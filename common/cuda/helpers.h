@@ -33,14 +33,6 @@ inline __device__ owl::vec3f randomPointInUnitSphere(Random &random) {
   return owl::vec3f(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
 }
 
-inline __device__ bool nearZero(const owl::vec3f& v) {
-    return v.x < EPS && v.y < EPS && v.z < EPS;
-}
-
-inline __device__ bool isZero(const owl::vec3f& v) {
-    return v.x == 0.f && v.y == 0.f && v.z == 0.f;
-}
-
 inline __device__ owl::vec3f cosineSampleHemisphere(const owl::vec3f &normal, Random &random) {
   return normal + randomPointInUnitSphere(random) * 0.99f;
 }
@@ -83,12 +75,6 @@ bool refract(const owl::vec3f& v,
     }
 
     return false;
-}
-
-inline __device__ float schlickFresnelAprox(const float cos, const float ior) {
-    float r0 = (1. - ior) / (1. + ior);
-    r0 = r0 * r0;
-    return r0 + (1. - r0) * pow(1. - cos, 5);
 }
 
 inline __device__ float schlickFresnelAprox(const float cos, const float ior) {

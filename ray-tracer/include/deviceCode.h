@@ -47,6 +47,8 @@ struct PerRayData {
         owl::vec3f normal_at_hitpoint;
     } scattered;
 
-    float attenuation;
+    struct {
+        Photon* data;
+        int num;
+    } photons;
 };
-
