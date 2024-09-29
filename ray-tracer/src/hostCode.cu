@@ -13,7 +13,6 @@
 #include "../../externals/stb/stb_image_write.h"
 #include "../../common/src/configLoader.h"
 #include <assimp/Importer.hpp>
-#include "assimp/Importer.hpp"
 #include "../include/program.h"
 #include "../../common/src/common.h"
 #include <cukd/builder.h>
@@ -105,7 +104,7 @@ void setupRaygenProgram(Program &program) {
           { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
           { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
           { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
-          { "photons",      OWL_RAW_POINTER,       OWL_OFFSETOF(RayGenData,photons)},
+          { "photons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,photons)},
           { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
           { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
           { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},

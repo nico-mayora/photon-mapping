@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../src/ray.h"
 #include "../src/mesh.h"
 #include "../src/common.h"
 
@@ -11,6 +10,18 @@
 
 inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
     return owl::vec3f(owl::clamp(v.x, f), owl::clamp(v.y, f), owl::clamp(v.z, f));
+}
+
+inline __device__ bool nearZero(const owl::vec3f& v) {
+    return v.x < EPS && v.y < EPS && v.z < EPS;
+}
+
+inline __device__ bool isZero(const owl::vec3f& v) {
+    return v.x == 0.f && v.y == 0.f && v.z == 0.f;
+}
+
+inline __device__ float norm(owl::vec3f v) {
+    return sqrtf(dot(v, v));
 }
 
 inline __device__ owl::vec3f randomPointInUnitSphere(Random &random) {
@@ -72,6 +83,12 @@ bool refract(const owl::vec3f& v,
     }
 
     return false;
+}
+
+inline __device__ float schlickFresnelAprox(const float cos, const float ior) {
+    float r0 = (1. - ior) / (1. + ior);
+    r0 = r0 * r0;
+    return r0 + (1. - r0) * pow(1. - cos, 5);
 }
 
 inline __device__ float schlickFresnelAprox(const float cos, const float ior) {

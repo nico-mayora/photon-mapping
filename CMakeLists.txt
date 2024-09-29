@@ -47,7 +47,6 @@ set(common_sources
     common/src/assetImporter.cxx
     common/src/mesh.h
     common/src/world.h
-    common/src/ray.h
     common/src/camera.h
     common/src/common.h
 )
