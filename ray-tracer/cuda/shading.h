@@ -2,14 +2,14 @@
 
 #include <cukd/knn.h>
 #include "../../common/cuda/helpers.h"
-#define K_NEAREST_NEIGHBOURS 10
-#define K_MAX_DISTANCE 2
+#define K_NEAREST_NEIGHBOURS 20
+#define K_MAX_DISTANCE 100
 
 // Add these to config file. We have these here for now to iterate better
 #define CONE_FILTER_C 5
 
 // We should store the power inside each photon. This is temporary (I hope!)
-#define PHOTON_POWER float(0.2)
+#define PHOTON_POWER float(0.02)
 
 inline __device__
 cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {

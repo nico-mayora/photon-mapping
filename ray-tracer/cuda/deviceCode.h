@@ -71,6 +71,7 @@ struct PerRayData {
     Random random;
     owl::vec3f colour;
     owl::vec3f hit_point;
+    bool debug;
 
     struct {
         owl::Ray ray;
@@ -81,4 +82,6 @@ struct PerRayData {
         Photon* data;
         int num;
     } photons;
+
+    Material material;
 };

@@ -6,6 +6,7 @@
 #include <optix_device.h>
 #include "owl/RayGen.h"
 #include <cukd/knn.h>
+#define LIGHT_COLOR_FACTOR 0.1f
 
 using namespace owl;
 
@@ -13,6 +14,7 @@ inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
   uint32_t p0, p1;
   packPointer( &prd, p0, p1 );
+  vec3f color = vec3f(1.f);
   for (int i = 0; i < self.max_ray_depth; i++) {
     prd.scattered.ray = Ray(0.f, 0.f, EPS, INFTY);
 
@@ -44,7 +46,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
       const auto normal = prd.scattered.normal_at_hitpoint;
 
       auto light_dot_norm = dot(light_direction, normal);
-      if (light_dot_norm <= 0.f) continue; // light hits "behind" triangle
+//      if (light_dot_norm <= 0.f) continue; // light hits "behind" triangle
 
       vec3f lightVisibility = 0.f;
       uint32_t u0, u1;
@@ -69,20 +71,25 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
       light_colour
         += lightVisibility
         * current_light.rgb
-        * (light_dot_norm / (distance_to_light * distance_to_light))
-        * (static_cast<float>(current_light.power));
+        * (10.0f / (distance_to_light * distance_to_light))
+        * (static_cast<float>(current_light.power))
+        * prd.material.albedo;
     }
-    prd.colour *= light_colour;
+//    prd.colour *= light_colour;
 
     ray = prd.scattered.ray;
+
+//    color *=
+//            prd.colour
+//            + light_colour * LIGHT_COLOR_FACTOR; // color por
 
     if (isZero(ray.direction) && isZero(ray.origin)) {
       //printf("current_colour = %f %f %f", prd.colour.x, prd.colour.y, prd.colour.z);
       return prd.colour;
     }
+
   }
   //printf("current_colourxd = %f %f %f", prd.colour.x, prd.colour.y, prd.colour.z);
-
   return prd.colour;
 }
 
@@ -90,6 +97,8 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
   const RayGenData &self = owl::getProgramData<RayGenData>();
   const vec2i pixelID = owl::getLaunchIndex();
+
+  // if coords debug == true
 
   PerRayData prd;
   prd.random.init(pixelID.x,pixelID.y);
@@ -133,6 +142,13 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   auto &prd = owl::getPRD<PerRayData>();
   const auto self = owl::getProgramData<TrianglesGeomData>();
   const auto material = *self.material;
+
+  // Copy material to prd
+  prd.material.albedo = material.albedo;
+  prd.material.diffuse = material.diffuse;
+  prd.material.specular = material.specular;
+  prd.material.transmission = material.transmission;
+  prd.material.refraction_idx = material.refraction_idx;
 
   auto colour_acum = vec3f(0.f);
   if (material.diffuse > 0.f) {

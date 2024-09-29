@@ -1,7 +1,7 @@
 #include "deviceCode.h"
 #include "../../common/cuda/helpers.h"
 #define PHOTON_ATTENUATION_FACTOR 150
-#define ATTENUATE_PHOTONS true
+#define ATTENUATE_PHOTONS false
 
 #include <optix_device.h>
 
