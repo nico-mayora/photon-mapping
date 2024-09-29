@@ -1,5 +1,7 @@
 #include "deviceCode.h"
 #include "../../common/cuda/helpers.h"
+#define PHOTON_ATTENUATION_FACTOR 150
+#define ATTENUATE_PHOTONS true
 
 #include <optix_device.h>
 
@@ -86,6 +88,10 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 //      if (pixelID.x == 0) {
 //        printf("russian_roulette: %f\n", russian_roulette);
 //      }
+      if (ATTENUATE_PHOTONS && prd.hit_point.distance) {
+        color = clampvec(color * PHOTON_ATTENUATION_FACTOR / (prd.hit_point.distance * prd.hit_point.distance), 1);
+      }
+
       if (russian_roulette < d) {
         // Diffuse
         photon.color = color;
@@ -142,6 +148,7 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   prd.hit_point.origin = rayOrg + t * rayDir;
   prd.hit_point.direction = rayDir;
   prd.hit_point.normal = Ng;
+  prd.hit_point.distance = norm(t * rayDir);
 }
 
 OPTIX_MISS_PROGRAM(miss)()

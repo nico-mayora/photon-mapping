@@ -11,6 +11,10 @@ inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
     return owl::vec3f(owl::clamp(v.x, f), owl::clamp(v.y, f), owl::clamp(v.z, f));
 }
 
+inline __device__ float norm(owl::vec3f v) {
+    return sqrtf(dot(v, v));
+}
+
 inline __device__ owl::vec3f randomPointInUnitSphere(Random &rnd) {
     owl::vec3f p;
     do {

@@ -82,7 +82,7 @@ int main(int ac, char **av)
 
   // LOG("Loading model...")
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/cornell-box/cornell-box.glb";
+  std::string path = "../assets/models/sphere/sphere.glb";
   auto world =  assets::import_scene(ai_importer, path);
   // auto world =  assets::import_scene(ai_importer, model_path);
 

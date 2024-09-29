@@ -4,10 +4,7 @@
 # material_name albedo_r albedo_g albedo_b diffuse specular transmission ior
 
 # Objects
-mirror.001 1.0 1.0 1.0 0.0 1.0 0.0 1.0
-white_cube.001 1.0 1.0 1.0 0.7 0.3 0.0 1.0
-glass.001 0.8 0.8 1.0 0.0 0.2 0.8 1.5
-pink_cube.001 0.80 0.15 0.71 1.0 1.0 0.0 1.0
+glass.002 1.0 1.0 1.0 0.0 0.0 1.0 1.5
 
 # Box
 floor.001 0.5 0.5 0.5 0.9 0.1 0.0 1.0

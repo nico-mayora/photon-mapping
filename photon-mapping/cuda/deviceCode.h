@@ -6,7 +6,7 @@
 #include "../../common/src/mesh.h"
 #include "../../common/src/ray.h"
 
-#define MAX_RAY_BOUNCES 200
+#define MAX_RAY_BOUNCES 5
 #define MAX_PHOTONS 100000
 
 struct Photon
@@ -38,11 +38,13 @@ struct PerRayData {
     Random random;
     owl::vec3f colour;
 //    RayEvent event;
+    bool debug;
 
     struct {
         owl::vec3f origin;
         owl::vec3f direction;
         owl::vec3f normal;
+        float distance;
     } hit_point;
 
     Material material;
