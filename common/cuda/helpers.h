@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../src/ray.h"
 #include "../src/mesh.h"
 
 #define RANDVEC3F owl::vec3f(rnd(),rnd(),rnd())

@@ -34,7 +34,6 @@ set(common_sources
     common/src/assetImporter.cxx
     common/src/mesh.h
     common/src/world.h
-    common/src/ray.h
 )
 
 target_sources(rayTracer

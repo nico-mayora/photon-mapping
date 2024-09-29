@@ -4,10 +4,11 @@
 #include <owl/common/math/vec.h>
 #include <owl/common/math/random.h>
 #include "../../common/src/mesh.h"
-#include "../../common/src/ray.h"
 
 #define MAX_RAY_BOUNCES 5
 #define MAX_PHOTONS 100000
+
+typedef owl::LCG<> Random;
 
 struct Photon
 {
