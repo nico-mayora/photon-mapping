@@ -1,9 +1,43 @@
 #include "deviceCode.h"
 #include "../../common/cuda/helpers.h"
+#define PHOTON_ATTENUATION_FACTOR 150
+#define ATTENUATE_PHOTONS true
 
 #include <optix_device.h>
 
 using namespace owl;
+
+inline __device__
+vec3f calculateTransmissionDirection(const vec3f &normal, const vec3f &direction, const float refraction_idx, float random) {
+  const auto reflected = reflect(normalize(direction), normal);
+  vec3f outward_normal;
+  vec3f refracted;
+  float reflect_prob;
+  float cosine;
+  float ni_over_nt;
+
+  if (dot(direction, normal) > 0.f) {
+    outward_normal = -normal;
+    ni_over_nt = refraction_idx;
+    cosine = dot(direction, normal);
+    cosine = sqrtf(1.f - refraction_idx*refraction_idx*(1.f-cosine*cosine));
+  } else {
+    outward_normal = normal;
+    ni_over_nt = 1.0 / refraction_idx;
+    cosine = -dot(direction, normal);// / vec3f(dir).length();
+  }
+
+  if (refract(direction, outward_normal, ni_over_nt, refracted))
+    reflect_prob = schlickFresnelAprox(cosine, refraction_idx);
+  else
+    reflect_prob = 1.f;
+
+  if (random < reflect_prob) {
+    return reflected;
+  } else {
+    return refracted;
+  }
+}
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 {
@@ -33,82 +67,60 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   bool is_alive = true;
   owl::vec3f color = lightSource.rgb;
   for (int i = 0; i < MAX_RAY_BOUNCES; i++) {
-    if (pixelID.x == 0) {
-      printf("i: %d\n", i);
-      printf("ray.origin: %f %f %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
-      printf("is_alive: %d\n", is_alive);
-    }
-    int photon_index = pixelID.x + i;
+//    if (pixelID.x == 0) {
+//      printf("i: %d\n", i);
+//      printf("ray.origin: %f %f %f\n", ray.origin.x, ray.origin.y, ray.origin.z);
+//      printf("is_alive: %d\n", is_alive);
+//    }
+    int photon_index = (pixelID.x *  MAX_RAY_BOUNCES) + i;
     Photon photon;
     photon.is_alive = false;
 
     if (is_alive) {
       owl::traceRay(self.world, ray, prd);
 
-      if (prd.event == Missed || prd.event == Absorbed) {
+      float russian_roulette = prd.random();
+
+      double d = prd.material.diffuse;
+      double s = prd.material.specular;
+      double t = prd.material.transmission;
+
+//      if (pixelID.x == 0) {
+//        printf("russian_roulette: %f\n", russian_roulette);
+//      }
+      if (ATTENUATE_PHOTONS && prd.hit_point.distance) {
+        color = clampvec(color * PHOTON_ATTENUATION_FACTOR / (prd.hit_point.distance * prd.hit_point.distance), 1);
+      }
+
+      if (russian_roulette < d) {
+        // Diffuse
+        photon.color = color;
+        photon.pos = prd.hit_point.origin;
+        photon.dir = prd.hit_point.direction;
+        photon.is_alive = true;
+
+        auto scatter_direction = prd.hit_point.normal + normalize(randomPointInUnitSphere(prd.random));
+        if (dot(scatter_direction, scatter_direction) < EPS) {
+          scatter_direction = prd.hit_point.normal;
+        }
+        ray.origin = prd.hit_point.origin;
+        ray.direction = normalize(scatter_direction);
+        color *= prd.material.albedo;
+      } else if (russian_roulette < d + s) {
+        // Specular
+        const auto reflected = reflect(normalize(prd.hit_point.direction), prd.hit_point.normal);
+        ray.origin = prd.hit_point.origin;
+        ray.direction = reflected;
+        color *= prd.material.albedo;
+      } else if (russian_roulette < d + s + t) {
+        // Transmission
+        ray.origin = prd.hit_point.origin;
+        ray.direction = calculateTransmissionDirection(prd.hit_point.normal, prd.hit_point.direction, prd.material.refraction_idx, prd.random());
+        color *= prd.material.albedo;
+      } else {
         is_alive = false;
-        if (pixelID.x == 0) {
-          printf("prd event: Missed or Absorbed\n");
-        }
-      }
-
-      if (prd.event == ReflectedDiffuse || prd.event == ReflectedSpecular) {
-
-        if (prd.event == ReflectedDiffuse) {
-          color *= prd.colour;
-          photon.color = color;
-          photon.pos = prd.scattered.s_origin;
-          photon.dir = ray.direction;
-          photon.is_alive = true;
-          if (pixelID.x == 0) {
-            printf("prd event: ReflectedDiffuse, coef: %f\n", prd.material.diffuseCoefficient);
-          }
-        } else {
-          if (pixelID.x == 0) {
-            printf("prd event: ReflectedSpecular, coef: %f\n", prd.material.reflectivity);
-          }
-        }
-
-        float russian_roulette = prd.random();
-
-        double d = prd.material.diffuseCoefficient;
-        double s = prd.material.reflectivity;
-
-        // Currently objects are either diffuse or specular, and the consequent ray is always stored in prd.scatered
-        // When we support multiple coefs per material, we should check for different rays here
-        if (pixelID.x == 0) {
-          printf("russian_roulette: %f\n", russian_roulette);
-        }
-        if (russian_roulette < d) {
-          if (pixelID.x == 0) {
-            printf("russian_roulette < d\n");
-          }
-          ray.origin = prd.scattered.s_origin;
-          ray.direction = prd.scattered.s_direction;
-        } else if (russian_roulette < d + s) {
-          if (pixelID.x == 0) {
-            printf("russian_roulette < d + s\n");
-          }
-          ray.origin = prd.scattered.s_origin;
-          ray.direction = prd.scattered.s_direction;
-        } else {
-          if (pixelID.x == 0) {
-            printf("russian_roulette MISS\n");
-          }
-          is_alive = false;
-        }
-      }
-
-      if (prd.event == Refraction) {
-        if (pixelID.x == 0) {
-          printf("prd event: Refraction\n");
-        }
-        color *= prd.colour;
-        ray.origin = prd.scattered.s_origin;
-        ray.direction = prd.scattered.s_direction;
       }
     }
-
     self.photons[photon_index] = photon;
   }
 }
@@ -120,29 +132,30 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const TrianglesGeomData &self = owl::getProgramData<TrianglesGeomData>();
   const auto &material = *self.material;
 
-  switch (material.surface_type) {
-    case LAMBERTIAN: {
-      scatterLambertian(prd, self);
-      break;
-    }
-    case SPECULAR: {
-      scatterSpecular(prd, self);
-      break;
-    }
-    case GLASS: {
-      scatterGlass(prd, self);
-      break;
-    }
-    default: {
-      scatterLambertian(prd, self);
-      break;
-    }
-  }
+  const vec3f rayDir = optixGetWorldRayDirection();
+  const vec3f rayOrg = optixGetWorldRayOrigin();
+  const vec3f Ng = getPrimitiveNormal(self);
+  const float t = optixGetRayTmax();
+
+  // Copy material to prd
+  prd.material.albedo = material.albedo;
+  prd.material.diffuse = material.diffuse;
+  prd.material.specular = material.specular;
+  prd.material.transmission = material.transmission;
+  prd.material.refraction_idx = material.refraction_idx;
+
+  // Populate ray data
+  prd.hit_point.origin = rayOrg + t * rayDir;
+  prd.hit_point.direction = rayDir;
+  prd.hit_point.normal = Ng;
+  prd.hit_point.distance = norm(t * rayDir);
 }
 
 OPTIX_MISS_PROGRAM(miss)()
 {
   auto &prd = owl::getPRD<PerRayData>();
-  prd.event = Missed;
+  prd.material.diffuse = 0;
+  prd.material.specular = 0;
+  prd.material.transmission = 0;
 }
 

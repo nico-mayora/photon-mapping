@@ -30,6 +30,8 @@
 #include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
 #include "assimp/Importer.hpp"
+// #include "../../common/src/configLoader.h"
+// #define CONFIG_PATH "../config.toml"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -71,9 +73,20 @@ void writeAlivePhotons(const Photon* photons, const std::string& filename) {
 int main(int ac, char **av)
 {
   LOG("Starting up...");
+  // LOG("Loading Config file...")
+
+  // auto cfg = parse_config(CONFIG_PATH).at("photon-mapping");
+
+  // auto model_path = cfg.at("model_path").as_string();
+  // auto output_filename = cfg.at("output_filename").as_string();
+
+  // LOG("Loading model...")
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/simpler-cube/cube.glb";
+  std::string path = "../assets/models/sphere/sphere.glb";
   auto world =  assets::import_scene(ai_importer, path);
+  // auto world =  assets::import_scene(ai_importer, model_path);
+
+  // LOG_OK("Loaded world.");
   double totalPower = 0;
   for (const auto & light : world->light_sources) {
     totalPower += light.power;
@@ -129,7 +142,10 @@ int main(int ac, char **av)
   const int numMeshes = static_cast<int>(world->meshes.size());
 
   for (int meshID=0; meshID<numMeshes; meshID++) {
-    auto [vertices, indices, material] = world->meshes[meshID];
+    auto mesh = world->meshes[meshID];
+    auto vertices = mesh.vertices;
+    auto indices = mesh.indices;
+    auto material = mesh.material;
 
     std::vector mats_vec = { *material };
 

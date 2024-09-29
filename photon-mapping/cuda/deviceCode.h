@@ -3,10 +3,10 @@
 #include <owl/owl.h>
 #include <owl/common/math/vec.h>
 #include <owl/common/math/random.h>
-#include "../../common/src/material.h"
-#include "../../common/src/light.h"
+#include "../../common/src/mesh.h"
+#include "../../common/src/ray.h"
 
-#define MAX_RAY_BOUNCES 200
+#define MAX_RAY_BOUNCES 5
 #define MAX_PHOTONS 100000
 
 struct Photon
@@ -34,3 +34,18 @@ struct MissProgData
     owl::vec3f  sky_color;
 };
 
+struct PerRayData {
+    Random random;
+    owl::vec3f colour;
+//    RayEvent event;
+    bool debug;
+
+    struct {
+        owl::vec3f origin;
+        owl::vec3f direction;
+        owl::vec3f normal;
+        float distance;
+    } hit_point;
+
+    Material material;
+};

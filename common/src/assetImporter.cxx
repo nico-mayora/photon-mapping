@@ -139,7 +139,7 @@ static MaterialMap readMaterialFile(const std::string& path) {
   const std::size_t last_dot = path.find_last_of('.');
   const auto base_path = path.substr(0,last_dot);
 
-  std::string filename = last_dot + ".mtl";
+  std::string filename = base_path + ".mtl";
   std::replace(filename.begin(), filename.end(), '/', '\\');
 
   MaterialMap materials_map;
@@ -191,8 +191,7 @@ static void assign_materials(std::vector<Mesh>& meshes, const std::string& path)
       material = std::make_shared<Material>(default_material);
       continue;
     }
-
-    auto current_mat = mat_map.at("name");
+    auto current_mat = mat_map.at(name);
     Material mesh_mat;
     mesh_mat.albedo = std::get<0>(current_mat);
     mesh_mat.diffuse = std::get<1>(current_mat);
