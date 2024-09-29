@@ -168,14 +168,14 @@ OPTIX_RAYGEN_PROGRAM(pointLightRayGen)(){
   for(int i = 0; i < 100; i++) {
     owl::traceRay(self.world, ray, prd);
 
-    if (prd.event & (Absorbed | ReflectedDiffuse)) {
+    if (prd.event & (ABSORBED | SCATTER_DIFFUSE)) {
       int photonIndex = atomicAdd(self.photonsCount, 1);
       auto photon = &self.photons[photonIndex];
       photon->color = prd.color;
       photon->pos = prd.scattered.origin;
     }
 
-    if (prd.event & (ReflectedDiffuse | ReflectedSpecular | Refraction)) {
+    if (prd.event & (SCATTER_DIFFUSE | SCATTER_SPECULAR | SCATTER_REFRACT)) {
       ray.origin = prd.scattered.origin;
       ray.direction = prd.scattered.direction;
       prd.color = prd.scattered.color;
@@ -192,7 +192,7 @@ inline __device__ void scatterDiffuse(PhotonMapperPRD &prd, const TrianglesGeomD
 
   const vec3f normal = getPrimitiveNormal(self);
 
-  prd.event = ReflectedDiffuse;
+  prd.event = SCATTER_DIFFUSE;
   prd.scattered.origin = hitPoint;
   prd.scattered.direction = reflectDiffuse(normal, prd.random);
   prd.scattered.color = multiplyColor(self.material->albedo, prd.color);
@@ -205,7 +205,7 @@ inline __device__ void scatterSpecular(PhotonMapperPRD &prd, const TrianglesGeom
 
   const vec3f normal = getPrimitiveNormal(self);
 
-  prd.event = ReflectedSpecular;
+  prd.event = SCATTER_SPECULAR;
   prd.scattered.origin = hitPoint;
   prd.scattered.direction = reflect(rayDir, normal);
   prd.scattered.color = multiplyColor(self.material->albedo, prd.color);
@@ -215,7 +215,7 @@ OPTIX_CLOSEST_HIT_PROGRAM(triangleMeshClosestHit)(){
   auto &prd = owl::getPRD<PhotonMapperPRD>();
   const auto &self = owl::getProgramData<TrianglesGeomData>();
 
-  const float specularProb = self.material->reflectivity;
+  const float specularProb = self.material->specular;
 
   const vec3f albedo = self.material->albedo;
   const float diffuseProb = max(albedo.x, max(albedo.y, albedo.z)) * (1.0f - specularProb);
@@ -226,11 +226,11 @@ OPTIX_CLOSEST_HIT_PROGRAM(triangleMeshClosestHit)(){
   } else if (randomProb < diffuseProb + specularProb) {
     scatterSpecular(prd, self);
   } else {
-    prd.event = Absorbed;
+    prd.event = ABSORBED;
   }
 }
 
 OPTIX_MISS_PROGRAM(miss)(){
-  auto &prd = owl::getPRD<PerRayData>();
-  prd.event = Missed;
+  auto &prd = owl::getPRD<PhotonMapperPRD>();
+  prd.event = MISS;
 }

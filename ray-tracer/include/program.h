@@ -17,10 +17,13 @@ struct Program {
 
     GeometryData geometryData;
 
-    OWLBuffer photonsBuffer;
+    Photon* photonsBuffer;
     int numPhotons;
     OWLBuffer lightsBuffer;
     int numLights;
+
+    int samplesPerPixel;
+    int maxDepth;
 
     Camera camera;
 };

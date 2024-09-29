@@ -3,8 +3,6 @@
 #include "owl/include/owl/owl.h"
 #include "owl/include/owl/common/math/vec.h"
 #include "owl/include/owl/common/math/random.h"
-#include "../../common/src/material.h"
-#include "../../common/src/light.h"
 #include "photon.h"
 #include "../../common/src/camera.h"
 

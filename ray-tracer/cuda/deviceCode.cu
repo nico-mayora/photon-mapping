@@ -118,7 +118,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
     for (int i = 0; i < K_NEAREST_NEIGHBOURS; i++) {
       auto id = closest.get_pointID(i);
       auto photon = self.photons[id];
-      printf("Closest point %d: %f %f %f\n", i, photon.pos.x, photon.pos.y, photon.pos.z);
+      printf("Closest point %d: %f %f %f, %f %f %f\n", i, photon.pos.x, photon.pos.y, photon.pos.z, photon.color.x, photon.color.y, photon.color.z);
     }
   }
 

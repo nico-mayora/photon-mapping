@@ -9,3 +9,5 @@
   std::cout << OWL_TERMINAL_LIGHT_BLUE;                         \
   std::cout << "#owl.sample(main): " << message << std::endl;   \
   std::cout << OWL_TERMINAL_DEFAULT;
+
+typedef owl::LCG<> Random;

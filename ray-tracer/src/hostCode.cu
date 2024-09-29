@@ -22,18 +22,6 @@
 
 #define CONFIG_PATH "../config.toml"
 
-constexpr owl3f sky_color = owl3f { 255./255., 255./255., 255./255. };
-
-/* Image configuration */
-auto outFileName = "result.png";
-const owl::vec2i fbSize(800,600);
-const owl::vec3f lookFrom(80.f,30.f,0.f);
-const owl::vec3f lookAt(10.f,20.f,0.f);
-const owl::vec3f lookUp(0.f,-1.f,0.f);
-const float aspect = fbSize.x / static_cast<float>(fbSize.y);
-constexpr float cosFovy = 0.66f;
-constexpr float fovy = 0.87f;
-
 extern "C" char deviceCode_ptx[];
 
 Photon* readPhotonsFromFile(const std::string& filename, int& count) {
@@ -64,21 +52,19 @@ Photon* readPhotonsFromFile(const std::string& filename, int& count) {
   return photonArray;
 }
 
-void loadPhotons(Program &program) {
-  auto photonsFromFile = readPhotonsFromFile("photons.txt", program.numPhotons);
-  program.photonsBuffer = owlDeviceBufferCreate(program.owlContext, OWL_USER_TYPE(Photon), program.numPhotons, photonsFromFile);
-
-  Photon* photons;
-  CUKD_CUDA_CALL(MallocManaged((void **) &photons, program.numPhotons * sizeof(Photon)));
+void loadPhotons(Program &program, const std::string& filename) {
+  auto photonsFromFile = readPhotonsFromFile(filename, program.numPhotons);
+  CUKD_CUDA_CALL(MallocManaged((void **) &program.photonsBuffer, program.numPhotons * sizeof(Photon)));
   for (int i=0; i < program.numPhotons; i++) {
-    photons[i].pos = photonsFromFile[i].pos;
-    photons[i].dir = photonsFromFile[i].dir;
-    photons[i].color = photonsFromFile[i].color;
+    program.photonsBuffer[i].pos = photonsFromFile[i].pos;
+    program.photonsBuffer[i].dir = photonsFromFile[i].dir;
+    program.photonsBuffer[i].color = photonsFromFile[i].color;
   }
-  cukd::buildTree<Photon,Photon_traits>(photons,program.numPhotons);
+  cukd::buildTree<Photon,Photon_traits>(program.photonsBuffer,program.numPhotons);
 }
 
-void setupCamera(Program &program) {
+void setupCamera(Program &program, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float cosFovy) {
+  const float aspect = program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y);
   program.camera.pos = lookFrom;
   program.camera.dir_00 = normalize(lookAt-lookFrom);
   program.camera.dir_du = cosFovy * aspect * normalize(cross(program.camera.dir_00, lookUp));
@@ -91,16 +77,16 @@ void loadLights(Program &program, const std::unique_ptr<World> &world) {
   program.lightsBuffer =  owlDeviceBufferCreate(program.owlContext, OWL_USER_TYPE(LightSource),world->light_sources.size(), world->light_sources.data());
 }
 
-void setupMissProgram(Program &program) {
+void setupMissProgram(Program &program, const owl::vec3f &sky_color) {
   OWLVarDecl missProgVars[] = {
-          { "sky_color", OWL_FLOAT3, OWL_OFFSETOF(MissProgData, sky_color)},
+          { "sky_color", OWL_FLOAT3, OWL_OFFSETOF(MissProgData, sky_colour)},
           { /* sentinel to mark end of list */ }
   };
 
   auto missProg = owlMissProgCreate(program.owlContext,program.owlModule,"miss",sizeof(MissProgData),missProgVars,-1);
   auto shadowMissProg = owlMissProgCreate(program.owlContext,program.owlModule,"shadow",0,nullptr,-1);
 
-  owlMissProgSet3f(missProg,"sky_color", sky_color);
+  owlMissProgSet3f(missProg, "sky_color", reinterpret_cast<const owl3f&>(sky_color));
 }
 
 void setupClosestHitProgram(Program &program) {
@@ -142,13 +128,18 @@ void setupRaygenProgram(Program &program) {
   owlRayGenSet1i    (program.rayGen,"numLights",    program.numLights);
   owlRayGenSetPointer(program.rayGen,"photons",      program.photonsBuffer);
   owlRayGenSet1i    (program.rayGen,"numPhotons",   program.numPhotons);
-  owlRayGenSet1i    (program.rayGen,"samples_per_pixel", program.samples_per_pixel);
-  owlRayGenSet1i    (program.rayGen,"max_ray_depth", program.max_ray_depth);
+  owlRayGenSet1i    (program.rayGen,"samples_per_pixel", program.samplesPerPixel);
+  owlRayGenSet1i    (program.rayGen,"max_ray_depth", program.maxDepth);
 }
 
 int main(int ac, char **av)
 {
-  LOG("Starting up...");
+  LOG("Starting up...")
+
+  Program program;
+  program.owlContext = owlContextCreate(nullptr,1);
+  program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
+  owlContextSetRayTypeCount(program.owlContext, 2);
 
   LOG("Loading Config file...")
 
@@ -158,13 +149,13 @@ int main(int ac, char **av)
   auto model_path = cfg.at("model_path").as_string();
   auto output_filename = cfg.at("output_filename").as_string();
   auto sky_colour = toml_to_vec3f(cfg, "sky_colour");
-  auto fbSize = toml_to_vec2i(cfg, "fb_size");
+  program.frameBufferSize = toml_to_vec2i(cfg, "fb_size");
   auto lookAt = toml_to_vec3f(cfg, "look_at");
   auto lookFrom = toml_to_vec3f(cfg, "look_from");
   auto lookUp = toml_to_vec3f(cfg, "look_up");
   float cosFovy = static_cast<float>(cfg.at("cos_fovy").as_floating());
-  int samples_per_pixel = static_cast<int>(cfg.at("samples_per_pixel").as_integer());
-  int max_ray_depth = static_cast<int>(cfg.at("depth").as_integer());
+  program.samplesPerPixel = static_cast<int>(cfg.at("samples_per_pixel").as_integer());
+  program.maxDepth = static_cast<int>(cfg.at("depth").as_integer());
 
   auto *ai_importer = new Assimp::Importer;
   std::string path = "../assets/models/dragon/dragon-box.glb";
@@ -172,21 +163,14 @@ int main(int ac, char **av)
 
   LOG_OK("Loaded world.");
 
-  Program program;
-  program.owlContext = owlContextCreate(nullptr,1);
-  program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
-  owlContextSetRayTypeCount(program.owlContext, 2);
-
-  program.frameBufferSize = fbSize;
-  program.frameBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_INT,fbSize.x * fbSize.y);
-
+  program.frameBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_INT,program.frameBufferSize.x * program.frameBufferSize.y);
   program.geometryData = loadGeometry(program.owlContext, world);
 
   loadLights(program, world);
-  loadPhotons(program);
-  setupCamera(program);
+  loadPhotons(program, photons_filename);
+  setupCamera(program, lookFrom, lookAt, lookUp, cosFovy);
 
-  setupMissProgram(program);
+  setupMissProgram(program, sky_colour);
   setupClosestHitProgram(program);
   setupRaygenProgram(program);
 
@@ -197,7 +181,7 @@ int main(int ac, char **av)
   owlRayGenLaunch2D(program.rayGen, program.frameBufferSize.x, program.frameBufferSize.y);
 
   auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(program.frameBuffer, 0));
-  stbi_write_png(outFileName,fbSize.x,fbSize.y,4,fb,fbSize.x*sizeof(uint32_t));
+  stbi_write_png(output_filename.c_str(),program.frameBufferSize.x,program.frameBufferSize.y,4,fb,program.frameBufferSize.x*sizeof(uint32_t));
 
   owlContextDestroy(program.owlContext);
 
