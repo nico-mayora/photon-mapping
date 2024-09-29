@@ -12,9 +12,11 @@ using namespace owl;
 
 inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
+  // Accumulates the colour for each "recursive" step
+  auto ray_colour = vec3f(1.f);
+
   uint32_t p0, p1;
   packPointer( &prd, p0, p1 );
-  vec3f color = vec3f(1.f);
   for (int i = 0; i < self.max_ray_depth; i++) {
     prd.scattered.ray = Ray(0.f, 0.f, EPS, INFTY);
 
@@ -32,65 +34,19 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
       p0, p1
     );
 
-    /* trace shadow rays */
-    vec3f light_colour = vec3f(0.f);
-
-    const auto lights = self.lights;
-    const auto numLights = self.numLights;
-
-    for (int l = 0; l < numLights; l++) {
-      auto current_light = lights[l];
-      auto shadow_ray_origin = prd.hit_point;
-      auto light_direction = current_light.pos - shadow_ray_origin;
-      auto distance_to_light = length(light_direction);
-      const auto normal = prd.scattered.normal_at_hitpoint;
-
-      auto light_dot_norm = dot(light_direction, normal);
-//      if (light_dot_norm <= 0.f) continue; // light hits "behind" triangle
-
-      vec3f lightVisibility = 0.f;
-      uint32_t u0, u1;
-      packPointer(&lightVisibility, u0, u1);
-      optixTrace(
-        self.world,
-        shadow_ray_origin,
-        normalize(light_direction),
-        EPS,
-        distance_to_light * (1.f - EPS),
-        0.f,
-        OptixVisibilityMask(255),
-        OPTIX_RAY_FLAG_DISABLE_ANYHIT
-        | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
-        | OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
-        1,
-        2,
-        1,
-        u0, u1
-      );
-
-      light_colour
-        += lightVisibility
-        * current_light.rgb
-        * (10.0f / (distance_to_light * distance_to_light))
-        * (static_cast<float>(current_light.power))
-        * prd.material.albedo;
-    }
-//    prd.colour *= light_colour;
-
     ray = prd.scattered.ray;
 
-//    color *=
-//            prd.colour
-//            + light_colour * LIGHT_COLOR_FACTOR; // color por
+    ray_colour *= prd.colour;
 
+    ray = prd.scattered.ray;
     if (isZero(ray.direction) && isZero(ray.origin)) {
       //printf("current_colour = %f %f %f", prd.colour.x, prd.colour.y, prd.colour.z);
-      return prd.colour;
+      return ray_colour;
     }
 
   }
   //printf("current_colourxd = %f %f %f", prd.colour.x, prd.colour.y, prd.colour.z);
-  return prd.colour;
+  return ray_colour;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -103,10 +59,6 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   PerRayData prd;
   prd.random.init(pixelID.x,pixelID.y);
   prd.colour= 1.f;
-
-  // Closest hit doesn't have access to RayGenData, so we need to set this here.
-  prd.photons.num = self.numPhotons;
-  prd.photons.data = self.photons;
 
   auto final_colour = vec3f(0.f);
   for (int sample = 0; sample < self.samples_per_pixel; sample++) {
@@ -143,17 +95,9 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const auto self = owl::getProgramData<TrianglesGeomData>();
   const auto material = *self.material;
 
-  // Copy material to prd
-  prd.material.albedo = material.albedo;
-  prd.material.diffuse = material.diffuse;
-  prd.material.specular = material.specular;
-  prd.material.transmission = material.transmission;
-  prd.material.refraction_idx = material.refraction_idx;
-
-  auto colour_acum = vec3f(0.f);
+  auto reflected_radiace = vec3f(0.f);
   if (material.diffuse > 0.f) {
-    diffuseAndCausticReflectence(self, prd);
-    colour_acum += prd.colour;
+    reflected_radiace += diffuseAndCausticReflectence(self, prd);
   }
 
   // As we can only have one scattered ray, we randomly
@@ -161,14 +105,13 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   // the material's indices.
   auto r = prd.random();
   if (r < material.specular) {
-    specularReflectence(self, prd);
-    colour_acum += prd.colour;
+    reflected_radiace += specularReflectence(self, prd);
   } else if (r < material.specular + material.transmission) {
     transmissionReflectence(self, prd);
-    colour_acum += prd.colour;
+    reflected_radiace += prd.colour;
   }
 
-  prd.colour = colour_acum;
+  prd.colour = reflected_radiace;
 }
 
 OPTIX_MISS_PROGRAM(miss)()

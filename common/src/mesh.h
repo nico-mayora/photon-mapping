@@ -29,14 +29,6 @@ struct LightSource {
     int num_photons;
 };
 
-/* variables for the triangle mesh geometry */
-struct TrianglesGeomData
-{
-    Material *material;
-    owl::vec3i *index;
-    owl::vec3f *vertex;
-};
-
 /* The vectors need to be (trivially) transformed into regular arrays
    before being passed into OptiX */
 struct Mesh {

@@ -40,7 +40,7 @@ Photon* readPhotonsFromFile(const std::string& filename, int& count) {
     return nullptr;
   }
 
-  Photon photon;
+  Photon photon{};
   while (file >> photon.pos.x >> photon.pos.y >> photon.pos.z
               >> photon.dir.x >> photon.dir.y >> photon.dir.z
               >> photon.color.x >> photon.color.y >> photon.color.z) {
@@ -52,7 +52,7 @@ Photon* readPhotonsFromFile(const std::string& filename, int& count) {
     return nullptr;
   }
 
-  Photon* photonArray = new Photon[count];
+  auto* photonArray = new Photon[count];
   std::copy(tempPhotons.begin(), tempPhotons.end(), photonArray);
 
   return photonArray;
@@ -119,6 +119,10 @@ int main(int ac, char **av)
     { "index",  OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,index)},
     { "vertex", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,vertex)},
     { "material", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,material)},
+    { "lighting.lights",        OWL_BUFPTR,      OWL_OFFSETOF(TrianglesGeomData,lighting.lights)},
+    { "lighting.numLights",     OWL_INT,         OWL_OFFSETOF(TrianglesGeomData,lighting.numLights)},
+    { "lighting.photons",      OWL_RAW_POINTER,  OWL_OFFSETOF(TrianglesGeomData,lighting.photons)},
+    { "lighting.numPhotons",   OWL_INT,          OWL_OFFSETOF(TrianglesGeomData,lighting.numPhotons)},
     { nullptr /* Sentinel to mark end-of-list */}
   };
 
@@ -226,10 +230,6 @@ int main(int ac, char **av)
     { "camera.dir_00", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_00)},
     { "camera.dir_du", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_du)},
     { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
-    { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
-    { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
-    { "photons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,photons)},
-    { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
     { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
     { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},
     { /* sentinel to mark end of list */ }

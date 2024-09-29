@@ -22,9 +22,62 @@ cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint,
     return closest;
 }
 
+inline __device__ owl::vec3f directIllumination(const TrianglesGeomData& self, PerRayData& prd) {
+    using namespace owl;
+    const vec3f rayDir = optixGetWorldRayDirection();
+    const vec3f rayOrg = optixGetWorldRayOrigin();
+    const auto tmax = optixGetRayTmax();
+    const auto material = *self.material;
 
-// WIP
-inline __device__ void diffuseAndCausticReflectence(const TrianglesGeomData& self, PerRayData& prd) {
+    auto normal = getPrimitiveNormal(self);
+    if (dot(rayDir, normal) > 0.f)
+        normal = -normal;
+
+    const auto lights = self.lighting.lights;
+    const auto numLights = self.lighting.numLights;
+
+    auto light_colour = vec3f(0.f);
+    for (int l = 0; l < numLights; l++) {
+        auto current_light = lights[l];
+        auto shadow_ray_origin = prd.hit_point;
+        auto light_direction = current_light.pos - shadow_ray_origin;
+        auto distance_to_light = length(light_direction);
+
+        auto light_dot_norm = dot(light_direction, normal);
+        if (light_dot_norm <= 0.f) continue; // light hits "behind" triangle
+
+        vec3f lightVisibility = 0.f;
+        uint32_t u0, u1;
+        packPointer(&lightVisibility, u0, u1);
+        optixTrace(
+          self.world,
+          shadow_ray_origin,
+          normalize(light_direction),
+          EPS,
+          distance_to_light * (1.f - EPS),
+          0.f,
+          OptixVisibilityMask(255),
+          OPTIX_RAY_FLAG_DISABLE_ANYHIT
+          | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
+          | OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
+          1,
+          2,
+          1,
+          u0, u1
+        );
+
+        light_colour
+          += lightVisibility
+          * current_light.rgb
+          * (light_dot_norm / (distance_to_light * distance_to_light))
+          * (static_cast<float>(current_light.power))
+          * prd.material.albedo;
+    }
+
+}
+
+// WIP - TODO: Separate
+inline __device__ owl::vec3f diffuseAndCausticReflectence(const TrianglesGeomData& self, PerRayData& prd) {
     using namespace owl;
     const vec3f rayDir = optixGetWorldRayDirection();
     const vec3f rayOrg = optixGetWorldRayOrigin();
@@ -70,7 +123,7 @@ inline __device__ void diffuseAndCausticReflectence(const TrianglesGeomData& sel
     prd.hit_point = rayOrg + tmax * rayDir;
 }
 
-inline __device__ void specularReflectence(const TrianglesGeomData& self, PerRayData& prd) {
+inline __device__ owl::vec3f specularReflectence(const TrianglesGeomData& self, PerRayData& prd) {
     using namespace owl;
     const vec3f rayDir = optixGetWorldRayDirection();
     const vec3f rayOrg = optixGetWorldRayOrigin();
@@ -85,7 +138,7 @@ inline __device__ void specularReflectence(const TrianglesGeomData& self, PerRay
     prd.colour *= material.specular * material.albedo;
 }
 
-inline __device__ void transmissionReflectence(const TrianglesGeomData &self, PerRayData& prd) {
+inline __device__ owl::vec3f transmissionReflectence(const TrianglesGeomData &self, PerRayData& prd) {
     using namespace owl;
 
     const vec3f rayDir = normalize(static_cast<vec3f>(optixGetWorldRayDirection()));

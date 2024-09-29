@@ -50,3 +50,10 @@ struct PerRayData {
 
     Material material;
 };
+
+struct TrianglesGeomData
+{
+    Material *material;
+    owl::vec3i *index;
+    owl::vec3f *vertex;
+}

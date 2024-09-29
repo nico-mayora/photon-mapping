@@ -36,17 +36,29 @@ struct Photon_traits : public cukd::default_data_traits<float3> {
     { p.split_dim = dim; }
 };
 
+/* variables for the triangle mesh geometry */
+struct TrianglesGeomData
+{
+    Material *material;
+    owl::vec3i *index;
+    owl::vec3f *vertex;
+
+    // Used in the ray tracer closest hit
+    // shader to calculate reflected radiance.
+    struct {
+        LightSource* lights;
+        int numLights;
+        Photon* photons;
+        int numPhotons;
+    } lighting;
+};
+
 /* variables for the ray generation program */
 struct RayGenData
 {
     uint32_t *fbPtr;
     owl::vec2i  fbSize;
     OptixTraversableHandle world;
-
-    LightSource* lights;
-    int numLights;
-    Photon* photons;
-    int numPhotons;
 
     int samples_per_pixel;
     int max_ray_depth;
@@ -77,11 +89,4 @@ struct PerRayData {
         owl::Ray ray;
         owl::vec3f normal_at_hitpoint;
     } scattered;
-
-    struct {
-        Photon* data;
-        int num;
-    } photons;
-
-    Material material;
 };
