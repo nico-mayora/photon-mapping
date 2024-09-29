@@ -2,31 +2,29 @@
 
 #include <cukd/knn.h>
 #include "../../common/cuda/helpers.h"
-#define K_NEAREST_NEIGHBOURS 4
-#define K_MAX_DISTANCE 50
+#define K_NEAREST_NEIGHBOURS 10
+#define K_MAX_DISTANCE 2
 
 // Add these to config file. We have these here for now to iterate better
 #define CONE_FILTER_C 5
 
 // We should store the power inside each photon. This is temporary (I hope!)
-#define PHOTON_POWER float(0.5)
+#define PHOTON_POWER float(0.2)
 
 inline __device__
-cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(
-    const owl::vec3f& queryPoint,
-    const Photon* photons,
-    const int numPoints,
-    float& sqrDistOfFurthestOneInClosest
-) {
-    cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
-    sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits>(
-        closest,queryPoint,photons,numPoints
+cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
+    cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
+    sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
+      cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
+    >(
+      closest,queryPoint,photons,numPoints
     );
     return closest;
 }
 
+
 // WIP
-inline __device__ void diffuseAndCausticReflectence(const TrianglesGeomData& self, PerRayData& prd, const RayGenData& rgd) {
+inline __device__ void diffuseAndCausticReflectence(const TrianglesGeomData& self, PerRayData& prd) {
     using namespace owl;
     const vec3f rayDir = optixGetWorldRayDirection();
     const vec3f rayOrg = optixGetWorldRayOrigin();
@@ -37,14 +35,15 @@ inline __device__ void diffuseAndCausticReflectence(const TrianglesGeomData& sel
     if (dot(rayDir, normal) > 0.f)
         normal = -normal;
 
-    const auto hit_point = rayOrg + tmax * rayDir;
+    const auto hit_vec3f = rayOrg + tmax * rayDir;
+    float3 hit_point = make_float3(hit_vec3f.x, hit_vec3f.y, hit_vec3f.z);
+
     //const RayGenData rgd = getProgramData<RayGenData>();
-    const Photon* photons = rgd.photons;
-    const int num_photons = rgd.numPhotons;
+    Photon* photons = prd.photons.data;
+    const int num_photons = prd.photons.num;
 
     float sqrDistOfFurthestOneInClosest = 0.f;
     auto k_closest_photons = KNearestPhotons(hit_point, photons, num_photons, sqrDistOfFurthestOneInClosest);
-    auto distance_to_furthest = sqrtf(sqrDistOfFurthestOneInClosest);
 
     // Disk sampling rejection should go here.
     // |<photon - hitpoint, normal>| < EPS => accept. Else reject.
@@ -54,19 +53,20 @@ inline __device__ void diffuseAndCausticReflectence(const TrianglesGeomData& sel
         auto photonID = k_closest_photons.get_pointID(p);
         auto photon = photons[photonID];
 
-        // photons with position zero, are invalid
         if (isZero(photon.pos)) continue;
+
+        // photons with position zero, are invalid
 
         // TODO: CONE FILTER
         // auto photon_distance = sqrtf(k_closest_photons.get_dist2(photonID));
         // auto photon_weight = 1 - (photon_distance / (CONE_FILTER_C * distance_to_furthest));
 
-        incoming_flux += (material.diffuse / PI) * vec3f(photon.color);
+        incoming_flux += (material.diffuse / PI) * vec3f(photon.color) * PHOTON_POWER;
     }
 
     auto radiance_estimate = incoming_flux / (2*PI*sqrDistOfFurthestOneInClosest);
 
-    prd.colour += prd.attenuation * incoming_flux * material.albedo;
+    prd.colour *= radiance_estimate * material.albedo;
     prd.hit_point = rayOrg + tmax * rayDir;
 }
 
@@ -82,8 +82,7 @@ inline __device__ void specularReflectence(const TrianglesGeomData& self, PerRay
     prd.scattered.ray = Ray(prd.hit_point, normalize(reflected), EPS, INFTY);
 
     const auto material = *self.material;
-    prd.attenuation *= material.specular;
-    prd.colour += prd.attenuation * material.albedo;
+    prd.colour *= material.specular * material.albedo;
 }
 
 inline __device__ void transmissionReflectence(const TrianglesGeomData &self, PerRayData& prd) {
@@ -116,15 +115,15 @@ inline __device__ void transmissionReflectence(const TrianglesGeomData &self, Pe
 
 
     vec3f scattered_dir;
+    float attenuation = material.transmission;
     if (prd.random() < reflection_coefficient) {
         scattered_dir = reflect(rayDir, normal);
-        prd.attenuation *= reflection_coefficient;
+        attenuation = reflection_coefficient;
     } else {
         scattered_dir = refracted;
-        prd.attenuation *= material.transmission;
     }
 
-    prd.colour += prd.attenuation * material.albedo;
+    prd.colour *= material.albedo * attenuation;
     prd.scattered.normal_at_hitpoint = normal;
     prd.hit_point = rayOrg + tmax * rayDir;
     prd.scattered.ray = Ray(prd.hit_point, scattered_dir, EPS, INFTY);

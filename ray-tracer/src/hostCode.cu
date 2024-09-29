@@ -100,10 +100,6 @@ int main(int ac, char **av)
   cukd::buildTree<Photon,Photon_traits>(photons,number_of_photons);
   printf("Number of photons: %d\n", number_of_photons);
 
-  for (int i=0; i<5; i++) {
-    printf("photon %d: %f %f %f\n", i, photons[i].pos.x, photons[i].pos.y, photons[i].pos.z);
-  }
-
   LOG_OK("Built KD-tree.");
 
   // create a context on the first device:

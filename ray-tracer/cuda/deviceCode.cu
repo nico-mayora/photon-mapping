@@ -11,8 +11,6 @@ using namespace owl;
 
 inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
-  auto acum = vec3f(1.);
-
   uint32_t p0, p1;
   packPointer( &prd, p0, p1 );
   for (int i = 0; i < self.max_ray_depth; i++) {
@@ -67,33 +65,25 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
         1,
         u0, u1
       );
+
       light_colour
         += lightVisibility
         * current_light.rgb
         * (light_dot_norm / (distance_to_light * distance_to_light))
-        * (static_cast<float>(current_light.power) / numLights)
-        * (1.f / self.samples_per_pixel);
+        * (static_cast<float>(current_light.power));
     }
-
-    if (isZero(prd.scattered.ray.direction) && isZero(prd.scattered.ray.origin)) {
-      return prd.colour;
-    }
+    prd.colour *= light_colour;
 
     ray = prd.scattered.ray;
+
+    if (isZero(ray.direction) && isZero(ray.origin)) {
+      //printf("current_colour = %f %f %f", prd.colour.x, prd.colour.y, prd.colour.z);
+      return prd.colour;
+    }
   }
+  //printf("current_colourxd = %f %f %f", prd.colour.x, prd.colour.y, prd.colour.z);
 
   return prd.colour;
-}
-
-inline __device__
-cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints) {
-  cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
-  auto sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
-    cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
-  >(
-    closest,queryPoint,photons,numPoints
-  );
-  return closest;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -101,27 +91,13 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   const RayGenData &self = owl::getProgramData<RayGenData>();
   const vec2i pixelID = owl::getLaunchIndex();
 
-  if (pixelID.x == 0 && pixelID.y == 0){
-    for (int i=0; i<5; i++) {
-      printf("photon %d: %f %f %f\n", i, self.photons[i].pos.x, self.photons[i].pos.y, self.photons[i].pos.z);
-    }
-  }
-
   PerRayData prd;
   prd.random.init(pixelID.x,pixelID.y);
-  prd.attenuation = 1.f;
+  prd.colour= 1.f;
 
-  if (pixelID.x == 0 && pixelID.y == 0) {
-    auto queryPoint = make_float3(0.f, 0.f, 0.f);
-    auto closest = KNearestPhotons(queryPoint, self.photons, self.numPhotons);
-
-    for (int i = 0; i < K_NEAREST_NEIGHBOURS; i++) {
-      auto id = closest.get_pointID(i);
-      auto photon = self.photons[id];
-      printf("Closest point %d: %f %f %f\n", i, photon.pos.x, photon.pos.y, photon.pos.z);
-    }
-  }
-
+  // Closest hit doesn't have access to RayGenData, so we need to set this here.
+  prd.photons.num = self.numPhotons;
+  prd.photons.data = self.photons;
 
   auto final_colour = vec3f(0.f);
   for (int sample = 0; sample < self.samples_per_pixel; sample++) {
@@ -143,7 +119,10 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 
   final_colour = final_colour * (1.f / self.samples_per_pixel);
 
-  const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
+  const int x = pixelID.x;
+  const int y = self.fbSize.y - pixelID.y;
+
+  const int fbOfs = x+self.fbSize.x*y;
 
   self.fbPtr[fbOfs]
     = make_rgba(final_colour);
@@ -153,21 +132,27 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
   auto &prd = owl::getPRD<PerRayData>();
   const auto self = owl::getProgramData<TrianglesGeomData>();
-  const auto rgd = owl::getProgramData<RayGenData>();
   const auto material = *self.material;
 
-  if (material.diffuse > 0.f)
-    //diffuseAndCausticReflectence(self, prd, rgd);
-
+  auto colour_acum = vec3f(0.f);
+  if (material.diffuse > 0.f) {
+    diffuseAndCausticReflectence(self, prd);
+    colour_acum += prd.colour;
+  }
 
   // As we can only have one scattered ray, we randomly
   // select either transmission or reflection based on
   // the material's indices.
-  if (prd.random() < material.specular / (material.diffuse + material.specular)) {
+  auto r = prd.random();
+  if (r < material.specular) {
     specularReflectence(self, prd);
-  } else {
+    colour_acum += prd.colour;
+  } else if (r < material.specular + material.transmission) {
     transmissionReflectence(self, prd);
+    colour_acum += prd.colour;
   }
+
+  prd.colour = colour_acum;
 }
 
 OPTIX_MISS_PROGRAM(miss)()
@@ -181,8 +166,8 @@ OPTIX_MISS_PROGRAM(miss)()
 OPTIX_MISS_PROGRAM(shadow)()
 {
     // we didn't hit anything, so the light is visible
-    vec3f &prd = getPRD<vec3f>();
-    prd = vec3f(1.f);
+    vec3f &lightVisbility = getPRD<vec3f>();
+    lightVisbility = vec3f(1.f);
 }
 
 OPTIX_CLOSEST_HIT_PROGRAM(shadow)() { /* unused */}
