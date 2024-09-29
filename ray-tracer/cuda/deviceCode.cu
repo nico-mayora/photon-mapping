@@ -1,16 +1,11 @@
 #include "deviceCode.h"
+#include "shading.h"
+
 #include "../../common/cuda/helpers.h"
 
 #include <optix_device.h>
 #include "owl/RayGen.h"
 #include <cukd/knn.h>
-
-#define MAX_RAY_BOUNCES 100
-#define SAMPLES_PER_PIXEL 1000
-#define LIGHT_FACTOR 1.f
-#define AMBIENT_LIGHT false
-#define K_NEAREST_NEIGHBOURS 4
-#define K_MAX_DISTANCE 50
 
 using namespace owl;
 
@@ -20,7 +15,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
 
   uint32_t p0, p1;
   packPointer( &prd, p0, p1 );
-  for (int i = 0; i < MAX_RAY_BOUNCES; i++) {
+  for (int i = 0; i < self.max_ray_depth; i++) {
     optixTrace(self.world,
       ray.origin,
       ray.direction,
@@ -40,12 +35,9 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
     }
 
     if (prd.event == Missed) {
-      if (i == 0) {
+      if (i == 0)
         return prd.colour; // sky colour
-      }
-      if (AMBIENT_LIGHT) {
-        return acum * prd.colour;
-      }
+
       return acum;
     }
 
@@ -89,27 +81,17 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd) {
         u0, u1
       );
       light_colour
-        += lightVisibility * LIGHT_FACTOR
+        += lightVisibility
         * current_light.rgb
         * (light_dot_norm / (distance_to_light * distance_to_light))
         * (static_cast<float>(current_light.power) / numLights)
-        * (1.f / SAMPLES_PER_PIXEL);
-    }
-
-    if (AMBIENT_LIGHT) {
-      light_colour += LIGHT_FACTOR * self.sky_color * (1.f / SAMPLES_PER_PIXEL);
+        * (1.f / self.samples_per_pixel);
     }
 
     acum *= colour_before_shadow * light_colour;
   }
 
   return acum;
-}
-
-inline __device__
-cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(vec3f queryPoint, Photon* photons, int numPoints) {
-  cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
-  auto sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<cukd::FixedCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits>(closest,queryPoint,photons,numPoints);
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -120,19 +102,8 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   PerRayData prd;
   prd.random.init(pixelID.x,pixelID.y);
 
-  if (pixelID.x == 0 && pixelID.y == 0) {
-    auto queryPoint = vec3f(0.f);
-    auto closest = KNearestPhotons(queryPoint, self.photons, self.numPhotons);
-
-    for (int i = 0; i < K_NEAREST_NEIGHBOURS; i++) {
-      auto id = closest.get_pointID(i);
-      auto photon = self.photons[id];
-      printf("Closest point %d: %f %f %f\n", i, photon.pos.x, photon.pos.y, photon.pos.z);
-    }
-  }
-
   auto final_colour = vec3f(0.f);
-  for (int sample = 0; sample < SAMPLES_PER_PIXEL; sample++) {
+  for (int sample = 0; sample < self.samples_per_pixel; sample++) {
     const auto random_eps = vec2f(prd.random(), prd.random());
     const vec2f screen = (vec2f(pixelID)+random_eps) / vec2f(self.fbSize);
 
@@ -149,7 +120,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
     final_colour += colour;
   }
 
-  final_colour = final_colour * (1.f / SAMPLES_PER_PIXEL);
+  final_colour = final_colour * (1.f / self.samples_per_pixel);
 
   const int fbOfs = pixelID.x+self.fbSize.x*pixelID.y;
 
@@ -163,24 +134,7 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   const auto self = owl::getProgramData<TrianglesGeomData>();
   const auto &material = *self.material;
 
-  switch (material.surface_type) {
-    case LAMBERTIAN: {
-      scatterLambertian(prd, self);
-      break;
-    }
-    case SPECULAR: {
-      scatterSpecular(prd, self);
-      break;
-    }
-    case GLASS: {
-      scatterGlass(prd, self);
-      break;
-    }
-    default: {
-      scatterLambertian(prd, self);
-      break;
-    }
-  }
+  /* TODO: Separate integrals and compute reflectance */
 }
 
 OPTIX_MISS_PROGRAM(miss)()
@@ -188,7 +142,7 @@ OPTIX_MISS_PROGRAM(miss)()
   const MissProgData &self = owl::getProgramData<MissProgData>();
 
   auto &prd = owl::getPRD<PerRayData>();
-  prd.colour = self.sky_color;
+  prd.colour = self.sky_colour;
   prd.event = Missed;
 }
 

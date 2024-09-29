@@ -17,6 +17,7 @@ struct PerRayData {
     Random random;
     owl::vec3f colour;
     RayEvent event;
+
     struct {
         owl::vec3f s_origin;
         owl::vec3f s_direction;
