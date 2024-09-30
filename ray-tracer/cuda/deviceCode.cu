@@ -91,12 +91,6 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   const RayGenData &self = owl::getProgramData<RayGenData>();
   const vec2i pixelID = owl::getLaunchIndex();
 
-  if (pixelID.x == 0 && pixelID.y == 0){
-    for (int i=0; i<5; i++) {
-      printf("photon %d: %f %f %f\n", i, self.photons[i].pos.x, self.photons[i].pos.y, self.photons[i].pos.z);
-    }
-  }
-
   PerRayData prd;
   prd.random.init(pixelID.x,pixelID.y);
   prd.colour= 1.f;

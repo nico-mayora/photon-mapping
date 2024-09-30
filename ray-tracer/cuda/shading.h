@@ -6,16 +6,10 @@
 #define K_MAX_DISTANCE 2
 
 // Add these to config file. We have these here for now to iterate better
-#define CONE_FILTER_C 5
+#define CONE_FILTER_C 1.1f
 
 // We should store the power inside each photon. This is temporary (I hope!)
 #define PHOTON_POWER float(0.2)
-
-// Add these to config file. We have these here for now to iterate better
-#define CONE_FILTER_C 5
-
-// We should store the power inside each photon. This is temporary (I hope!)
-#define PHOTON_POWER float(0.5)
 
 inline __device__
 cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints,

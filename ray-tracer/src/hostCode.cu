@@ -9,7 +9,6 @@
 // external helper stuff for image output
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../../common/src/assetImporter.h"
-#include "../../externals/assimp/code/AssetLib/Q3BSP/Q3BSPFileData.h"
 #include "../../externals/stb/stb_image_write.h"
 #include "../../common/src/configLoader.h"
 #include <assimp/Importer.hpp>
@@ -157,10 +156,11 @@ int main(int ac, char **av)
   program.maxDepth = static_cast<int>(cfg["ray-tracer"]["depth"].as_integer());
 
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/dragon/dragon-box.glb";
-  auto world =  assets::import_scene(ai_importer, path);
+  auto world =  assets::import_scene(ai_importer, model_path);
 
   LOG_OK("Loaded world.");
+
+  LOG_OK("Setting up programs...");
 
   program.frameBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_INT,program.frameBufferSize.x * program.frameBufferSize.y);
   program.geometryData = loadGeometry(program.owlContext, world);
@@ -177,12 +177,17 @@ int main(int ac, char **av)
   owlBuildPipeline(program.owlContext);
   owlBuildSBT(program.owlContext);
 
+  LOG_OK("Launching...");
+
   owlRayGenLaunch2D(program.rayGen, program.frameBufferSize.x, program.frameBufferSize.y);
+
+  LOG_OK("Saving image...");
 
   auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(program.frameBuffer, 0));
   stbi_write_png(output_filename.c_str(),program.frameBufferSize.x,program.frameBufferSize.y,4,fb,program.frameBufferSize.x*sizeof(uint32_t));
 
   owlContextDestroy(program.owlContext);
+  LOG_OK("Finished. If all went well, this should be the last output.");
 
   return 0;
 }
