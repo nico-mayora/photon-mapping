@@ -5,6 +5,7 @@
 #include "owl/include/owl/common/math/random.h"
 #include "photon.h"
 #include "../../common/src/camera.h"
+#include "../../common/src/world.h"
 
 /* variables for the ray generation program */
 struct RayGenData

@@ -16,4 +16,6 @@ struct Program {
 
     OWLBuffer photonsBuffer;
     OWLBuffer photonsCount;
+
+    int maxDepth;
 };

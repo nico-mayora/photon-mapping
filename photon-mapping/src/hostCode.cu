@@ -12,6 +12,7 @@
 #include "../../externals/stb/stb_image_write.h"
 #include "assimp/Importer.hpp"
 #include "../include/program.h"
+#include "../../common/src/configLoader.h"
 
 #define LOG(message)                                            \
   std::cout << OWL_TERMINAL_BLUE;                               \
@@ -52,6 +53,7 @@ void setupPointLightRayGenProgram(Program &program) {
           { "photons",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photons)},
           { "photonsCount",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photonsCount)},
           { "dims",OWL_INT2,OWL_OFFSETOF(PointLightRGD,dims)},
+          { "maxBounces",OWL_INT,OWL_OFFSETOF(PointLightRGD, maxDepth)},
           { "world",OWL_GROUP,OWL_OFFSETOF(PointLightRGD,world)},
           { "position",OWL_FLOAT3,OWL_OFFSETOF(PointLightRGD,position)},
           { "color",OWL_FLOAT3,OWL_OFFSETOF(PointLightRGD,color)},
@@ -66,6 +68,7 @@ void setupPointLightRayGenProgram(Program &program) {
   owlRayGenSetBuffer(program.rayGen,"photons",program.photonsBuffer);
   owlRayGenSetBuffer(program.rayGen,"photonsCount",program.photonsCount);
   owlRayGenSetGroup(program.rayGen,"world",program.geometryData.worldGroup);
+  owlRayGenSet1i(program.rayGen,"maxBounces",program.maxDepth);
 }
 
 void setPointLightRayGenVariables(Program &program, const LightSource &light, owl::vec2i dims) {
@@ -78,9 +81,22 @@ void setPointLightRayGenVariables(Program &program, const LightSource &light, ow
 int main(int ac, char **av)
 {
   LOG("Starting up...");
+
+  Program program;
+  program.owlContext = owlContextCreate(nullptr,1);
+  program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
+  owlContextSetRayTypeCount(program.owlContext, 1);
+
+  LOG("Loading Config file...")
+
+  auto cfg = parse_config();
+
+  auto photons_filename = cfg["data"]["photons_file"].as_string();
+  auto model_path = cfg["data"]["model_path"].as_string();
+  program.maxDepth = cfg["photon-mapper"]["max_depth"].as_integer();
+
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/dragon/dragon-box.glb";
-  auto world =  assets::import_scene(ai_importer, path);
+  auto world =  assets::import_scene(ai_importer, model_path);
   double totalPower = 0;
   for (const auto & light : world->light_sources) {
     totalPower += light.power;
@@ -89,11 +105,7 @@ int main(int ac, char **av)
     light.num_photons = static_cast<int>(light.power / totalPower * MAX_PHOTONS);
   }
 
-  Program program;
-
-  program.owlContext = owlContextCreate(nullptr,1);
-  program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
-  owlContextSetRayTypeCount(program.owlContext, 1);
+  LOG_OK("Loaded world.")
 
   program.geometryData = loadGeometry(program.owlContext, world);
 
@@ -124,7 +136,7 @@ int main(int ac, char **av)
   auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.photonsBuffer, 0));
   auto count = *(int*)owlBufferGetPointer(program.photonsCount, 0);
 
-  writeAlivePhotons(fb, count, "photons.txt");
+  writeAlivePhotons(fb, count, photons_filename);
 
   LOG("destroying devicegroup ...");
   owlContextDestroy(program.owlContext);

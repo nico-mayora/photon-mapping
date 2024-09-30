@@ -10,4 +10,6 @@
   std::cout << "#owl.sample(main): " << message << std::endl;   \
   std::cout << OWL_TERMINAL_DEFAULT;
 
+#define EPS 1e-4
+
 typedef owl::LCG<> Random;

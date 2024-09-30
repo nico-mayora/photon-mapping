@@ -18,9 +18,6 @@
 #include <cukd/builder.h>
 #include <cukd/knn.h>
 
-
-#define CONFIG_PATH "../config.toml"
-
 extern "C" char deviceCode_ptx[];
 
 Photon* readPhotonsFromFile(const std::string& filename, int& count) {
@@ -62,8 +59,9 @@ void loadPhotons(Program &program, const std::string& filename) {
   cukd::buildTree<Photon,Photon_traits>(program.photonsBuffer,program.numPhotons);
 }
 
-void setupCamera(Program &program, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float cosFovy) {
+void setupCamera(Program &program, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float fovy) {
   const float aspect = program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y);
+  const float cosFovy = std::cos(fovy);
   program.camera.pos = lookFrom;
   program.camera.dir_00 = normalize(lookAt-lookFrom);
   program.camera.dir_du = cosFovy * aspect * normalize(cross(program.camera.dir_00, lookUp));
@@ -142,19 +140,21 @@ int main(int ac, char **av)
 
   LOG("Loading Config file...")
 
-  auto cfg = parse_config(CONFIG_PATH).at("ray-tracer");
+  auto cfg = parse_config();
 
-  auto photons_filename = cfg.at("photons_file").as_string();
-  auto model_path = cfg.at("model_path").as_string();
-  auto output_filename = cfg.at("output_filename").as_string();
-  auto sky_colour = toml_to_vec3f(cfg, "sky_colour");
-  program.frameBufferSize = toml_to_vec2i(cfg, "fb_size");
-  auto lookAt = toml_to_vec3f(cfg, "look_at");
-  auto lookFrom = toml_to_vec3f(cfg, "look_from");
-  auto lookUp = toml_to_vec3f(cfg, "look_up");
-  float cosFovy = static_cast<float>(cfg.at("cos_fovy").as_floating());
-  program.samplesPerPixel = static_cast<int>(cfg.at("samples_per_pixel").as_integer());
-  program.maxDepth = static_cast<int>(cfg.at("depth").as_integer());
+  auto photons_filename = cfg["data"]["photons_file"].as_string();
+  auto model_path = cfg["data"]["model_path"].as_string();
+
+  auto lookAt = toml_to_vec3f(cfg["camera"]["look_at"]);
+  auto lookFrom = toml_to_vec3f(cfg["camera"]["look_from"]);
+  auto lookUp = toml_to_vec3f(cfg["camera"]["look_up"]);
+  float fovy = static_cast<float>(cfg["camera"]["fovy"].as_floating());
+
+  auto sky_colour = toml_to_vec3f(cfg["ray-tracer"]["sky_colour"]);
+  auto output_filename = cfg["ray-tracer"]["output_filename"].as_string();
+  program.frameBufferSize = toml_to_vec2i(cfg["ray-tracer"]["fb_size"]);
+  program.samplesPerPixel = static_cast<int>(cfg["ray-tracer"]["samples_per_pixel"].as_integer());
+  program.maxDepth = static_cast<int>(cfg["ray-tracer"]["depth"].as_integer());
 
   auto *ai_importer = new Assimp::Importer;
   std::string path = "../assets/models/dragon/dragon-box.glb";
@@ -167,7 +167,7 @@ int main(int ac, char **av)
 
   loadLights(program, world);
   loadPhotons(program, photons_filename);
-  setupCamera(program, lookFrom, lookAt, lookUp, cosFovy);
+  setupCamera(program, lookFrom, lookAt, lookUp, fovy);
 
   setupMissProgram(program, sky_colour);
   setupClosestHitProgram(program);

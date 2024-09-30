@@ -34,7 +34,7 @@ inline __device__ owl::vec3f randomPointInUnitSphere(Random &random) {
 }
 
 inline __device__ owl::vec3f cosineSampleHemisphere(const owl::vec3f &normal, Random &random) {
-  return normal + randomPointInUnitSphere(random) * 0.99f;
+  return normalize(normal + randomPointInUnitSphere(random) * (1 - EPS));
 }
 
 inline __device__ owl::vec3f reflect(const owl::vec3f &incoming, const owl::vec3f &normal) {
@@ -43,6 +43,18 @@ inline __device__ owl::vec3f reflect(const owl::vec3f &incoming, const owl::vec3
 
 inline __device__ owl::vec3f reflectDiffuse(const owl::vec3f &normal, Random &random) {
     return cosineSampleHemisphere(normal, random);
+}
+
+inline __device__ owl::vec3f refract(const owl::vec3f &incoming, const owl::vec3f &normal, const float refractionIndex) {
+    const float cosTheta = -dot(incoming, normal);
+    const float mu = cosTheta > 0.f ? 1.f / refractionIndex : refractionIndex;
+    const float cosPhi = 1.f - mu * mu * (1.f - cosTheta * cosTheta);
+
+    if (cosPhi > 0) {
+      return mu * incoming + (mu * cosTheta - sqrtf(cosPhi)) * normal;
+    } else {
+      return reflect(incoming, normal);
+    }
 }
 
 inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {

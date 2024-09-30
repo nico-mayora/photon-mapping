@@ -14,6 +14,7 @@ struct PhotonMapperRGD
     int *photonsCount;
     owl::vec2i dims;
     OptixTraversableHandle world;
+    int maxDepth;
 };
 
 struct PointLightRGD: public PhotonMapperRGD

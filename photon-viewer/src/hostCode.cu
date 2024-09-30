@@ -16,18 +16,9 @@
 #include "../../common/src/common.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
+#include "../../common/src/configLoader.h"
 
 #define RGBA_BLACK 0xFF000000
-
-/* Image configuration */
-auto outFileName = "result.png";
-const owl::vec2i fbSize(800,600);
-const owl::vec3f lookFrom(80.f,30.f,0.f);
-const owl::vec3f lookAt(10.f,20.f,0.f);
-const owl::vec3f lookUp(0.f,-1.f,0.f);
-const float aspect = fbSize.x / static_cast<float>(fbSize.y);
-constexpr float cosFovy = 0.66f;
-constexpr float fovy = 0.87f;
 
 extern "C" char deviceCode_ptx[];
 
@@ -59,13 +50,13 @@ Photon* readPhotonsFromFile(const std::string& filename, int& count) {
   return photonArray;
 }
 
-void loadPhotons(Program &program) {
-  auto photons = readPhotonsFromFile("photons.txt", program.numPhotons);
+void loadPhotons(Program &program, const std::string& filename, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float fovy) {
+  auto photons = readPhotonsFromFile(filename, program.numPhotons);
 
   auto viewMatrix = glm::lookAt(glm::vec3(lookFrom.x, lookFrom.y, lookFrom.z),
                                 glm::vec3(lookAt.x, lookAt.y, lookAt.z),
                                 glm::vec3(lookUp.x, lookUp.y, lookUp.z));
-  auto perspectiveMatrix = glm::perspective(fovy, aspect, 0.1f, 1000.f);
+  auto perspectiveMatrix = glm::perspective(fovy, program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y), 0.1f, 1000.f);
   auto projectionMatrix = perspectiveMatrix * viewMatrix;
 
   for (int i = 0; i < program.numPhotons; i++) {
@@ -75,15 +66,18 @@ void loadPhotons(Program &program) {
       photon->pixel.x = -1;
       photon->pixel.y = -1;
     }else {
-      photon->pixel.x = static_cast<int>((screenPos.x / screenPos.w + 1.f) * 0.5f * fbSize.x);
-      photon->pixel.y = static_cast<int>((screenPos.y / screenPos.w + 1.f) * 0.5f * fbSize.y);
+      photon->pixel.x = static_cast<int>((screenPos.x / screenPos.w + 1.f) * 0.5f * program.frameBufferSize.x);
+      photon->pixel.y = static_cast<int>((screenPos.y / screenPos.w + 1.f) * 0.5f * program.frameBufferSize.y);
     }
   }
 
   program.photonsBuffer = owlDeviceBufferCreate(program.owlContext, OWL_USER_TYPE(Photon), program.numPhotons, photons);
 }
 
-void setupCamera(Program &program) {
+void setupCamera(Program &program, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float fovy) {
+  const float aspect = program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y);
+  float cosFovy = std::cos(fovy);
+
   program.camera.pos = lookFrom;
   program.camera.dir_00 = normalize(lookAt-lookFrom);
   program.camera.dir_du = cosFovy * aspect * normalize(cross(program.camera.dir_00, lookUp));
@@ -125,24 +119,38 @@ void setupRaygenProgram(Program &program) {
 
 int main(int ac, char **av)
 {
-  LOG("Starting up...");
-
-  auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/dragon/dragon-box.glb";
-  auto world =  assets::import_scene(ai_importer, path);
-
-  LOG_OK("Loaded world.");
+  LOG("Starting up...")
 
   Program program;
   program.owlContext = owlContextCreate(nullptr,1);
   program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
   owlContextSetRayTypeCount(program.owlContext, 1);
 
-  program.frameBufferSize = fbSize;
-  program.frameBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_INT,fbSize.x * fbSize.y);
+  LOG("Loading Config file...")
 
-  int *initialFrameBuffer = new int[fbSize.x * fbSize.y];
-  for (int i = 0; i < fbSize.x * fbSize.y; i++) {
+  auto cfg = parse_config();
+
+  auto photons_filename = cfg["data"]["photons_file"].as_string();
+  auto model_path = cfg["data"]["model_path"].as_string();
+
+  auto lookAt = toml_to_vec3f(cfg["camera"]["look_at"]);
+  auto lookFrom = toml_to_vec3f(cfg["camera"]["look_from"]);
+  auto lookUp = toml_to_vec3f(cfg["camera"]["look_up"]);
+  float fovy = static_cast<float>(cfg["camera"]["fovy"].as_floating());
+
+  auto output_filename = cfg["photon-viewer"]["output_filename"].as_string();
+  program.frameBufferSize = toml_to_vec2i(cfg["photon-viewer"]["fb_size"]);
+
+  auto *ai_importer = new Assimp::Importer;
+  auto world =  assets::import_scene(ai_importer, model_path);
+
+  LOG_OK("Loaded world.");
+
+  program.frameBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_INT,program.frameBufferSize.x * program.frameBufferSize.y);
+
+  int frameBufferLength = program.frameBufferSize.x * program.frameBufferSize.y;
+  int *initialFrameBuffer = new int[frameBufferLength];
+  for (int i = 0; i < frameBufferLength; i++) {
     initialFrameBuffer[i] = RGBA_BLACK;
   }
   owlBufferUpload(program.frameBuffer,initialFrameBuffer);
@@ -150,8 +158,8 @@ int main(int ac, char **av)
 
   program.geometryData = loadGeometry(program.owlContext, world);
 
-  loadPhotons(program);
-  setupCamera(program);
+  loadPhotons(program, photons_filename, lookFrom, lookAt, lookUp, fovy);
+  setupCamera(program, lookFrom, lookAt, lookUp, fovy);
 
   setupMissProgram(program);
   setupClosestHitProgram(program);
@@ -164,7 +172,7 @@ int main(int ac, char **av)
   owlRayGenLaunch2D(program.rayGen, program.numPhotons, 1);
 
   auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(program.frameBuffer, 0));
-  stbi_write_png(outFileName,fbSize.x,fbSize.y,4,fb,fbSize.x*sizeof(uint32_t));
+  stbi_write_png(output_filename.c_str(),program.frameBufferSize.x,program.frameBufferSize.y,4,fb,program.frameBufferSize.x*sizeof(uint32_t));
 
   owlContextDestroy(program.owlContext);
 
