@@ -8,7 +8,7 @@
 #include <cukd/knn.h>
 
 #define CONSTANT_LIGHT_FACTOR 0.1f
-#define DIFFUSE_SAMPLES 3
+#define DIFFUSE_SAMPLES 1
 
 using namespace owl;
 
@@ -124,19 +124,25 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
   }
   photons_average_dir = -photons_average_dir / K_NEAREST_NEIGHBOURS;
   auto normal = prd.hit_record.normal_at_hitpoint;
-  auto biased_scatter_dir = normalize(photons_average_dir + normal);
+  vec3f biased_scatter_dir = normalize(photons_average_dir + normal);
 
   vec3f diffuse_colour = 0.f;
-  for (int s = 1; s < DIFFUSE_SAMPLES; s++) {
-    auto scaled_rand_dir = prd.hit_record.material.diffuse * randomPointInUnitSphere(prd.random);
-    auto scattered = biased_scatter_dir + scaled_rand_dir;
+  for (int s = 0; s < DIFFUSE_SAMPLES; s++) {
+    //vec3f scaled_rand_dir = prd.hit_record.material.diffuse * randomPointInUnitSphere(prd.random);
+    //vec3f scattered = biased_scatter_dir + scaled_rand_dir;
+
+    PerRayData diffuse_prd;
+    diffuse_prd.random.init(prd.random(), prd.random());
+
+    vec3f scattered = normal + randomPointInUnitSphere(diffuse_prd.random);
+    if (nearZero(scattered)) scattered = normal;
+
 
     uint32_t d0, d1;
-    PerRayData diffuse_prd;
-    diffuse_prd.random = prd.random;
     packPointer(&diffuse_prd, d0, d1);
 
-    optixTrace(self.world,
+    optixTrace(
+      self.world,
       prd.hit_record.hitpoint,
       scattered,
       EPS,
@@ -149,6 +155,8 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       DIFFUSE,
       d0, d1
     );
+
+    //diffuse_prd = prd;
 
     if (diffuse_prd.ray_missed) {
       diffuse_colour += diffuse_prd.colour;
@@ -163,13 +171,13 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       self.photons,
       self.numPhotons,
       scattered_diffuse_brdf
-    );
+    ) * scattered_albedo;
 
   }
 
   vec3f diffuse_term = diffuse_colour / DIFFUSE_SAMPLES;
 
-  return /* direct_term + specular_term + caustics_term + */ diffuse_term;
+  return direct_term /*+ specular_term + caustics_term + diffuse_term */;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -216,6 +224,27 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
 
 OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
 {
+  auto &prd = owl::getPRD<PerRayData>();
+  const auto self = owl::getProgramData<TrianglesGeomData>();
+
+  prd.hit_record.material = *self.material;
+
+  const vec3f rayDir = optixGetWorldRayDirection();
+  const vec3f rayOrg = optixGetWorldRayOrigin();
+  const auto tmax = optixGetRayTmax();
+
+  prd.hit_record.hitpoint = rayOrg + rayDir * tmax;
+
+  // Calculate normal at hitpoint and flip if it's pointing
+  // in the same direction as the incident ray.
+  const auto normal = getPrimitiveNormal(self);
+  prd.hit_record.normal_at_hitpoint = (dot(rayDir, normal) < 0.f) ? normal : -normal;
+
+  prd.colour = 0.f;
+  prd.ray_missed = false;
+}
+
+OPTIX_CLOSEST_HIT_PROGRAM(ScatterDiffuse)() {
   auto &prd = owl::getPRD<PerRayData>();
   const auto self = owl::getProgramData<TrianglesGeomData>();
 

@@ -134,7 +134,7 @@ int main(int ac, char **av)
   owlGeomTypeSetClosestHit(trianglesGeomType,PRIMARY,
                            module,"TriangleMesh");
   owlGeomTypeSetClosestHit(trianglesGeomType,DIFFUSE,
-                         module,"TriangleMesh");
+                         module,"ScatterDiffuse");
   owlGeomTypeSetClosestHit(trianglesGeomType,SHADOW,
                          module,"shadow");
 
