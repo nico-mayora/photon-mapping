@@ -95,16 +95,14 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
 
   vec3f specular_term = 0.f;
   // TODO: Structure this properly!
-  if (absorbed) goto after_specular;
+  if (!absorbed) {
+    auto out_ray = Ray(prd.hit_record.hitpoint, out_dir, EPS, INFTY);
 
-  auto out_ray = Ray(prd.hit_record.hitpoint, out_dir, EPS, INFTY);
+    auto reflected_irradiance = tracePath(self, out_ray, prd, depth-1);
+    specular_term = reflected_irradiance * coefficient;
+  }
 
-  auto reflected_irradiance = tracePath(self, out_ray, prd, depth-1);
-  specular_term = reflected_irradiance * coefficient;
-
-  after_specular:
-
-  return specular_term;
+  return /* direct_term + */ specular_term;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
