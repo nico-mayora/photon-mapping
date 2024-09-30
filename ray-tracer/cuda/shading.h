@@ -195,7 +195,7 @@ inline __device__ float specularBrdf(const float specular_coefficient,
 }
 
 inline __device__
-owl::vec3f gather_photons(const owl::vec3f& hitpoint, Photon* photons, const int num_photons,const float diffuse_brdf) {
+owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, Photon* photons, const int num_photons,const float diffuse_brdf) {
      using namespace owl;
      float query_area_radius_squared = 0.f;
      auto k_nearest = KNearestPhotons(

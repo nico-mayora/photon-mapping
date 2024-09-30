@@ -8,7 +8,7 @@
 #include <cukd/knn.h>
 
 #define CONSTANT_LIGHT_FACTOR 0.1f
-#define DIFFUSE_SAMPLES 10
+#define DIFFUSE_SAMPLES 3
 
 using namespace owl;
 
@@ -105,30 +105,13 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
 
   // Caustics
   // TODO - Use caustics map
-  float query_area_radius_squared = 0.f;
-  auto k_nearest_caustic = KNearestPhotons(
-    prd.hit_record.hitpoint, self.photons, self.numPhotons, query_area_radius_squared
-  );
-  auto in_flux = vec3f(0.f);
-  for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
-    auto photonID = k_nearest_caustic.get_pointID(p);
-    auto photon = self.photons[photonID];
 
-    if (isZero(photon.pos)) continue;
-
-    auto photon_power = photon.power;
-    auto photon_distance = norm(vec3f(photon.pos) - prd.hit_record.hitpoint);
-    auto photon_weight = 1 - (photon_distance / sqrtf(query_area_radius_squared) * CONE_FILTER_C);
-
-    in_flux += diffuse_brdf
-      * photon_power * photon_weight
-      * vec3f(photon.color);
-  }
-  vec3f caustics_term = in_flux / ((1 - (2/3) * (1.f/CONE_FILTER_C)) * 2*PI*query_area_radius_squared);
+  vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, self.photons, self.numPhotons, diffuse_brdf);
 
   // Diffuse scattering
+  float _dist;
   auto k_nearest_global = KNearestPhotons(
-    prd.hit_record.hitpoint, self.photons, self.numPhotons, query_area_radius_squared
+    prd.hit_record.hitpoint, self.photons, self.numPhotons, _dist
   );
   vec3f photons_average_dir = 0.f;
   for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
@@ -137,7 +120,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
 
     if (isZero(photon.pos)) continue;
 
-    photons_average_dir += photon.dir;
+    photons_average_dir += vec3f(photon.dir);
   }
   photons_average_dir = -photons_average_dir / K_NEAREST_NEIGHBOURS;
   auto normal = prd.hit_record.normal_at_hitpoint;
@@ -152,11 +135,12 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
     PerRayData diffuse_prd;
     diffuse_prd.random = prd.random;
     packPointer(&diffuse_prd, d0, d1);
+    /*
     optixTrace(self.world,
-      ray.origin,
-      ray.direction,
-      ray.tmin,
-      ray.tmax,
+      prd.hit_record.hitpoint,
+      scattered,
+      EPS,
+      INFTY,
       0.f,
       OptixVisibilityMask(255),
       OPTIX_RAY_FLAG_DISABLE_ANYHIT,
@@ -164,19 +148,30 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       2,
       0,
       d0, d1
-    );
+    );*/
+
+    diffuse_prd = prd;
 
     if (diffuse_prd.ray_missed) {
       diffuse_colour += diffuse_prd.colour;
       continue;
     }
 
-    diffuse_colour +=
+    auto scattered_albedo = diffuse_prd.hit_record.material.albedo;
+    auto scattered_diffuse_brdf = diffuse_prd.hit_record.material.diffuse / PI;
+
+    diffuse_colour += gatherPhotons(
+      diffuse_prd.hit_record.hitpoint,
+      self.photons,
+      self.numPhotons,
+      scattered_diffuse_brdf
+    );
 
   }
 
+  vec3f diffuse_term = diffuse_colour / DIFFUSE_SAMPLES;
 
-  return /*direct_term + specular_term + */caustics_term;
+  return /* direct_term + specular_term + caustics_term + */ diffuse_term;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
