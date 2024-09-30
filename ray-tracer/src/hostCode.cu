@@ -109,7 +109,7 @@ int main(int ac, char **av)
   // create a context on the first device:
   OWLContext context = owlContextCreate(nullptr,1);
   OWLModule module = owlModuleCreate(context, deviceCode_ptx);
-  owlContextSetRayTypeCount(context, 2);
+  owlContextSetRayTypeCount(context, 3);
 
   // ##################################################################
   // set up all the *GEOMETRY* graph we want to render
@@ -131,9 +131,11 @@ int main(int ac, char **av)
                         OWL_TRIANGLES,
                         sizeof(TrianglesGeomData),
                         trianglesGeomVars,-1);
-  owlGeomTypeSetClosestHit(trianglesGeomType,0,
+  owlGeomTypeSetClosestHit(trianglesGeomType,PRIMARY,
                            module,"TriangleMesh");
-  owlGeomTypeSetClosestHit(trianglesGeomType,1,
+  owlGeomTypeSetClosestHit(trianglesGeomType,DIFFUSE,
+                         module,"TriangleMesh");
+  owlGeomTypeSetClosestHit(trianglesGeomType,SHADOW,
                          module,"shadow");
 
   // ##################################################################
@@ -152,13 +154,9 @@ int main(int ac, char **av)
   const int numMeshes = static_cast<int>(world->meshes.size());
 
   for (int meshID=0; meshID<numMeshes; meshID++) {
-//    auto [vertices, indices, material] = world->meshes[meshID];
-    auto mesh = world->meshes[meshID];
-    auto vertices = mesh.vertices;
-    auto indices = mesh.indices;
-    auto material = mesh.material;
+    auto [name, vertices, indices, material] = world->meshes[meshID];
 
-    std::vector<Material> mats_vec = { *material };
+    std::vector mats_vec = { *material };
 
     OWLBuffer vertexBuffer
       = owlDeviceBufferCreate(context,OWL_FLOAT3,vertices.size(), vertices.data());

@@ -26,9 +26,9 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
     0.f,
     OptixVisibilityMask(255),
     OPTIX_RAY_FLAG_DISABLE_ANYHIT,
-    0,
-    2,
-    0,
+    PRIMARY,
+    RAY_TYPES_COUNT,
+    PRIMARY,
     p0, p1
   );
   if (prd.ray_missed)
@@ -64,9 +64,9 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       OPTIX_RAY_FLAG_DISABLE_ANYHIT
       | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
       | OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
-      1,
-      2,
-      1,
+      SHADOW,
+      RAY_TYPES_COUNT,
+      SHADOW,
       u0, u1
     );
 
@@ -135,7 +135,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
     PerRayData diffuse_prd;
     diffuse_prd.random = prd.random;
     packPointer(&diffuse_prd, d0, d1);
-    /*
+
     optixTrace(self.world,
       prd.hit_record.hitpoint,
       scattered,
@@ -144,13 +144,11 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       0.f,
       OptixVisibilityMask(255),
       OPTIX_RAY_FLAG_DISABLE_ANYHIT,
-      0,
-      2,
-      0,
+      DIFFUSE,
+      RAY_TYPES_COUNT,
+      DIFFUSE,
       d0, d1
-    );*/
-
-    diffuse_prd = prd;
+    );
 
     if (diffuse_prd.ray_missed) {
       diffuse_colour += diffuse_prd.colour;

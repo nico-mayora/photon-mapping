@@ -18,6 +18,13 @@ struct Photon {
     uint8_t split_dim;
 };
 
+enum RayType {
+    PRIMARY = 0,
+    SHADOW = 1,
+    DIFFUSE = 2,
+    RAY_TYPES_COUNT = 3
+};
+
 struct Photon_traits : public cukd::default_data_traits<float3> {
     using point_t = float3;
     // set to false because "optimized" KD-tree functions are not working
