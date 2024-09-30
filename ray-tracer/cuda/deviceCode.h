@@ -42,15 +42,6 @@ struct TrianglesGeomData
     Material *material;
     owl::vec3i *index;
     owl::vec3f *vertex;
-
-    // Used in the ray tracer closest hit
-    // shader to calculate reflected radiance.
-    struct {
-        LightSource* lights;
-        int numLights;
-        Photon* photons;
-        int numPhotons;
-    } lighting;
 };
 
 /* variables for the ray generation program */
@@ -62,6 +53,11 @@ struct RayGenData
 
     int samples_per_pixel;
     int max_ray_depth;
+
+    LightSource* lights;
+    int numLights;
+    Photon* photons;
+    int numPhotons;
 
     struct {
         owl::vec3f pos;
@@ -82,11 +78,14 @@ typedef owl::LCG<> Random;
 struct PerRayData {
     Random random;
     owl::vec3f colour;
-    owl::vec3f hit_point;
+    bool ray_missed;
+    // Flag to tag rays when debugging.
     bool debug;
 
     struct {
-        owl::Ray ray;
+        owl::vec3f hitpoint;
+        // Always points opposite to the incident ray.
         owl::vec3f normal_at_hitpoint;
-    } scattered;
+        Material material;
+    } hit_record;
 };

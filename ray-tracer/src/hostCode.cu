@@ -119,10 +119,6 @@ int main(int ac, char **av)
     { "index",  OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,index)},
     { "vertex", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,vertex)},
     { "material", OWL_BUFPTR, OWL_OFFSETOF(TrianglesGeomData,material)},
-    { "lighting.lights",        OWL_BUFPTR,      OWL_OFFSETOF(TrianglesGeomData,lighting.lights)},
-    { "lighting.numLights",     OWL_INT,         OWL_OFFSETOF(TrianglesGeomData,lighting.numLights)},
-    { "lighting.photons",      OWL_RAW_POINTER,  OWL_OFFSETOF(TrianglesGeomData,lighting.photons)},
-    { "lighting.numPhotons",   OWL_INT,          OWL_OFFSETOF(TrianglesGeomData,lighting.numPhotons)},
     { nullptr /* Sentinel to mark end-of-list */}
   };
 
@@ -232,6 +228,10 @@ int main(int ac, char **av)
     { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
     { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
     { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},
+    { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
+    { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
+    { "photons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,photons)},
+    { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
     { /* sentinel to mark end of list */ }
   };
 
