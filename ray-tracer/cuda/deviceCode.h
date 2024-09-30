@@ -11,6 +11,8 @@ struct Photon {
     float3 pos;
     float3 dir;
     float3 color;
+    float power;
+
     // Data for KD-tree
     uint8_t quantized_normal[3];
     uint8_t split_dim;

@@ -85,7 +85,7 @@ int main(int ac, char **av)
 
   int number_of_photons;
   auto photonsFromFile = readPhotonsFromFile(photons_filename, number_of_photons);
-  LOG_OK("Loaded photons.");
+  LOG_OK("Loaded photons from " << photons_filename << ".");
 
   // Build KD-tree
   LOG("Building KD-tree...");
@@ -96,6 +96,10 @@ int main(int ac, char **av)
     photons[i].pos = photonsFromFile[i].pos;
     photons[i].dir = photonsFromFile[i].dir;
     photons[i].color = photonsFromFile[i].color;
+
+    // This isn't strictly correct.
+    // We should divide by the number of _emmited_ photons!
+    photons[i].power = 0.2;
   }
   cukd::buildTree<Photon,Photon_traits>(photons,number_of_photons);
   printf("Number of photons: %d\n", number_of_photons);

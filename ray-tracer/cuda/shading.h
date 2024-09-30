@@ -2,26 +2,23 @@
 
 #include <cukd/knn.h>
 #include "../../common/cuda/helpers.h"
-#define K_NEAREST_NEIGHBOURS 20
+#include "deviceCode.h"
+
+#define K_NEAREST_NEIGHBOURS 100
 #define K_MAX_DISTANCE 100
+#define CONE_FILTER_C 1.1f
 
-// Add these to config file. We have these here for now to iterate better
-#define CONE_FILTER_C 5
+ inline __device__
+ cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
+     cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
+     sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
+       cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
+     >(
+       closest,queryPoint,photons,numPoints
+     );
+     return closest;
+ }
 
-// We should store the power inside each photon. This is temporary (I hope!)
-#define PHOTON_POWER float(0.02)
-
-// inline __device__
-// cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
-//     cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
-//     sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
-//       cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
-//     >(
-//       closest,queryPoint,photons,numPoints
-//     );
-//     return closest;
-// }
-//
 // inline __device__ owl::vec3f directIllumination(const TrianglesGeomData& self, PerRayData& prd) {
 //     using namespace owl;
 //     const vec3f rayDir = optixGetWorldRayDirection();
@@ -196,3 +193,31 @@ inline __device__ float specularBrdf(const float specular_coefficient,
 
     return 0;
 }
+
+inline __device__
+owl::vec3f gather_photons(const owl::vec3f& hitpoint, Photon* photons, const int num_photons,const float diffuse_brdf) {
+     using namespace owl;
+     float query_area_radius_squared = 0.f;
+     auto k_nearest = KNearestPhotons(
+       hitpoint, photons, num_photons, query_area_radius_squared
+     );
+
+     auto in_flux = vec3f(0.f);
+     for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
+         const auto photonID = k_nearest.get_pointID(p);
+         auto photon = photons[photonID];
+
+         if (isZero(photon.pos)) continue;
+
+         const auto photon_power = photon.power;
+         const auto photon_distance = norm(vec3f(photon.pos) - hitpoint);
+         const auto photon_weight = 1 - (photon_distance / sqrtf(query_area_radius_squared) * CONE_FILTER_C);
+
+         in_flux += diffuse_brdf
+           * photon_power * photon_weight
+           * vec3f(photon.color);
+     }
+
+     return in_flux / ((1 - (2/3) * (1.f/CONE_FILTER_C)) * 2*PI*query_area_radius_squared);
+ }
+
