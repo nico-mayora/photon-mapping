@@ -86,8 +86,9 @@ void setupMissProgram(Program &program, const owl::vec3f &sky_color) {
 }
 
 void setupClosestHitProgram(Program &program) {
-  owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType,0,program.owlModule,"TriangleMesh");
-  owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType,1,program.owlModule,"shadow");
+  owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType,PRIMARY,program.owlModule,"TriangleMesh");
+  owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType,SHADOW,program.owlModule,"shadow");
+  owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType,DIFFUSE,program.owlModule,"ScatterDiffuse");
 }
 
 void setupRaygenProgram(Program &program) {
@@ -135,7 +136,7 @@ int main(int ac, char **av)
   Program program;
   program.owlContext = owlContextCreate(nullptr,1);
   program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
-  owlContextSetRayTypeCount(program.owlContext, 2);
+  owlContextSetRayTypeCount(program.owlContext, RAY_TYPES_COUNT);
 
   LOG("Loading Config file...")
 

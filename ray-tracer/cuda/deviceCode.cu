@@ -21,8 +21,8 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
   optixTrace(self.world,
     ray.origin,
     ray.direction,
-    ray.tmin,
-    ray.tmax,
+    EPS,
+    INFTY,
     0.f,
     OptixVisibilityMask(255),
     OPTIX_RAY_FLAG_DISABLE_ANYHIT,
@@ -47,8 +47,14 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
     auto distance_to_light = norm(light_dir);
     light_dir = normalize(light_dir);
 
+    if (prd.debug) {
+      printf("shadorg: %f %f %f\n", prd.hit_record.hitpoint.x, prd.hit_record.hitpoint.y, prd.hit_record.hitpoint.z);
+      printf("light_dir: %f %f %f\n", light_dir.x, light_dir.y, light_dir.z);
+      printf("light_dir: %f\n", distance_to_light);
+    }
+
     auto light_dot_norm = dot(light_dir, prd.hit_record.normal_at_hitpoint);
-    if (light_dot_norm < 0.f) continue; // light hits "behind" triangle
+    //if (light_dot_norm < 0.f) continue; // light hits "behind" triangle
 
     vec3f light_visibility = 0.f;
     uint32_t u0, u1;
@@ -75,14 +81,17 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       ray.direction,
       prd.hit_record.normal_at_hitpoint);
 
-    direct_illumination += light_visibility
+    direct_illumination += light_visibility/*
       * CONSTANT_LIGHT_FACTOR
       * static_cast<float>(current_light.power)
       * light_dot_norm
       * (1.f / distance_to_light * distance_to_light)
       * (diffuse_brdf + specular_brdf)
-      * current_light.rgb;
+      * current_light.rgb*/;
+
   }
+  return direct_illumination;
+
   auto direct_term =  albedo * direct_illumination;
 
   // Specular Reflection
@@ -128,15 +137,11 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
 
   vec3f diffuse_colour = 0.f;
   for (int s = 0; s < DIFFUSE_SAMPLES; s++) {
-    //vec3f scaled_rand_dir = prd.hit_record.material.diffuse * randomPointInUnitSphere(prd.random);
-    //vec3f scattered = biased_scatter_dir + scaled_rand_dir;
-
     PerRayData diffuse_prd;
     diffuse_prd.random.init(prd.random(), prd.random());
 
     vec3f scattered = normal + randomPointInUnitSphere(diffuse_prd.random);
     if (nearZero(scattered)) scattered = normal;
-
 
     uint32_t d0, d1;
     packPointer(&diffuse_prd, d0, d1);
@@ -188,7 +193,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
   PerRayData prd;
   prd.random.init(pixelID.x,pixelID.y);
 
-  if (pixelID.x == 400 && pixelID.y == 40)
+  if (pixelID.x == 600 && pixelID.y == 330)
   {
     prd.debug = true;
   }
@@ -222,8 +227,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
     = make_rgba(final_colour);
 }
 
-OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
-{
+inline __device__ void closestHit() {
   auto &prd = owl::getPRD<PerRayData>();
   const auto self = owl::getProgramData<TrianglesGeomData>();
 
@@ -244,26 +248,8 @@ OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)()
   prd.ray_missed = false;
 }
 
-OPTIX_CLOSEST_HIT_PROGRAM(ScatterDiffuse)() {
-  auto &prd = owl::getPRD<PerRayData>();
-  const auto self = owl::getProgramData<TrianglesGeomData>();
-
-  prd.hit_record.material = *self.material;
-
-  const vec3f rayDir = optixGetWorldRayDirection();
-  const vec3f rayOrg = optixGetWorldRayOrigin();
-  const auto tmax = optixGetRayTmax();
-
-  prd.hit_record.hitpoint = rayOrg + rayDir * tmax;
-
-  // Calculate normal at hitpoint and flip if it's pointing
-  // in the same direction as the incident ray.
-  const auto normal = getPrimitiveNormal(self);
-  prd.hit_record.normal_at_hitpoint = (dot(rayDir, normal) < 0.f) ? normal : -normal;
-
-  prd.colour = 0.f;
-  prd.ray_missed = false;
-}
+OPTIX_CLOSEST_HIT_PROGRAM(TriangleMesh)() { closestHit(); }
+OPTIX_CLOSEST_HIT_PROGRAM(ScatterDiffuse)() { closestHit(); }
 
 OPTIX_MISS_PROGRAM(miss)()
 {
