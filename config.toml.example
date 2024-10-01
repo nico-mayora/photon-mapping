@@ -1,16 +1,23 @@
-[ray-tracer]
-sky_colour = [1.0, 1.0, 1.0]
-
-output_filename = "result.png"
-fb_size = [800, 600]
-
+[camera]
 look_from = [80.0, 30.0, 0.0]
 look_at = [10.0, 20.0, 0.0]
 look_up = [0.0, -1.0, 0.0]
-cos_fovy = 0.66
+fovy = 0.87
 
+[data]
 photons_file = "photons.txt"
-model_path = "../assets/models/dragon/dragon-box.glb"
+model_path = "../assets/models/sphere/sphere.glb"
 
+[ray-tracer]
+sky_colour = [1.0, 1.0, 1.0]
+output_filename = "result.png"
+fb_size = [800, 600]
 samples_per_pixel = 24
 depth = 30
+
+[photon-viewer]
+output_filename = "result-photon-viewer.png"
+fb_size = [1920, 1080]
+
+[photon-mapper]
+max_depth = 1

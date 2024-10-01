@@ -3,10 +3,12 @@
 #include <iostream>
 #include "toml.hpp"
 
-inline toml::value parse_config(const std::string& path) {
+#define CONFIG_PATH "../config.toml"
+
+inline toml::value parse_config() {
     toml::value tbl;
     try {
-        tbl = toml::parse(path);
+        tbl = toml::parse(CONFIG_PATH);
         std::cout << "Loaded config:\n" << tbl << '\n';
     }
     catch (const toml::syntax_error & err) {
@@ -16,12 +18,12 @@ inline toml::value parse_config(const std::string& path) {
     return tbl;
 }
 
-inline owl::vec2i toml_to_vec2i(toml::value cfg, const std::string& key) {
-    auto arr = toml::find<std::array<int, 2>>(cfg, key);
-    return { arr[0], arr[1] };
+inline owl::vec2i toml_to_vec2i(const toml::value &cfg) {
+  const auto& arr = cfg.as_array();
+  return { (int)arr[0].as_integer(), (int)arr[1].as_integer() };
 }
 
-inline owl::vec3f toml_to_vec3f(toml::value cfg, const std::string& key) {
-    auto arr = toml::find<std::array<float, 3>>(cfg, key);
-    return { arr[0], arr[1],arr[2] };
+inline owl::vec3f toml_to_vec3f(const toml::value &cfg) {
+    const auto& arr = cfg.as_array();
+    return { (float)arr[0].as_floating(), (float)arr[1].as_floating(),(float)arr[2].as_floating() };
 }

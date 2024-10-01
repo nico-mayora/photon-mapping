@@ -26,6 +26,7 @@ std::unique_ptr<World> assets::import_scene(Assimp::Importer* importer, std::str
   world->light_sources = extract_lights(path);
   assign_materials(world->meshes, path);
 
+
   return world;
 }
 

@@ -2,124 +2,20 @@
 
 #include <cukd/knn.h>
 #include "../../common/cuda/helpers.h"
-#include "deviceCode.h"
+#include "../include/deviceCode.h"
 
 #define K_NEAREST_NEIGHBOURS 100
 #define K_MAX_DISTANCE 100
 #define CONE_FILTER_C 1.1f
 
- inline __device__
- cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
-     cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
-     sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
-       cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
-     >(
-       closest,queryPoint,photons,numPoints
-     );
-     return closest;
- }
-
-// inline __device__ owl::vec3f directIllumination(const TrianglesGeomData& self, PerRayData& prd) {
-//     using namespace owl;
-//     const vec3f rayDir = optixGetWorldRayDirection();
-//     const vec3f rayOrg = optixGetWorldRayOrigin();
-//     const auto tmax = optixGetRayTmax();
-//     const auto material = *self.material;
-//
-//     auto normal = getPrimitiveNormal(self);
-//     if (dot(rayDir, normal) > 0.f)
-//         normal = -normal;
-//
-//     const auto lights = self.lighting.lights;
-//     const auto numLights = self.lighting.numLights;
-//
-//     auto light_colour = vec3f(0.f);
-//     for (int l = 0; l < numLights; l++) {
-//         auto current_light = lights[l];
-//         auto shadow_ray_origin = prd.hit_point;
-//         auto light_direction = current_light.pos - shadow_ray_origin;
-//         auto distance_to_light = length(light_direction);
-//
-//         auto light_dot_norm = dot(light_direction, normal);
-//         if (light_dot_norm <= 0.f) continue; // light hits "behind" triangle
-//
-//         vec3f lightVisibility = 0.f;
-//         uint32_t u0, u1;
-//         packPointer(&lightVisibility, u0, u1);
-//         optixTrace(
-//           self.world,
-//           shadow_ray_origin,
-//           normalize(light_direction),
-//           EPS,
-//           distance_to_light * (1.f - EPS),
-//           0.f,
-//           OptixVisibilityMask(255),
-//           OPTIX_RAY_FLAG_DISABLE_ANYHIT
-//           | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT
-//           | OPTIX_RAY_FLAG_DISABLE_CLOSESTHIT,
-//           1,
-//           2,
-//           1,
-//           u0, u1
-//         );
-//
-//         light_colour
-//           += lightVisibility
-//           * current_light.rgb
-//           * (light_dot_norm / (distance_to_light * distance_to_light))
-//           * (static_cast<float>(current_light.power))
-//           * prd.material.albedo;
-//     }
-//
-// }
-//
-// // WIP - TODO: Separate
-// inline __device__ owl::vec3f diffuseAndCausticReflectence(const TrianglesGeomData& self, PerRayData& prd) {
-//     using namespace owl;
-//     const vec3f rayDir = optixGetWorldRayDirection();
-//     const vec3f rayOrg = optixGetWorldRayOrigin();
-//     const auto tmax = optixGetRayTmax();
-//     const auto material = *self.material;
-//
-//     auto normal = getPrimitiveNormal(self);
-//     if (dot(rayDir, normal) > 0.f)
-//         normal = -normal;
-//
-//     const auto hit_vec3f = rayOrg + tmax * rayDir;
-//     float3 hit_point = make_float3(hit_vec3f.x, hit_vec3f.y, hit_vec3f.z);
-//
-//     //const RayGenData rgd = getProgramData<RayGenData>();
-//     Photon* photons = prd.photons.data;
-//     const int num_photons = prd.photons.num;
-//
-//     float sqrDistOfFurthestOneInClosest = 0.f;
-//     auto k_closest_photons = KNearestPhotons(hit_point, photons, num_photons, sqrDistOfFurthestOneInClosest);
-//
-//     // Disk sampling rejection should go here.
-//     // |<photon - hitpoint, normal>| < EPS => accept. Else reject.
-//
-//     auto incoming_flux = vec3f(0.f);
-//     for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
-//         auto photonID = k_closest_photons.get_pointID(p);
-//         auto photon = photons[photonID];
-//
-//         if (isZero(photon.pos)) continue;
-//
-//         // photons with position zero, are invalid
-//
-//         // TODO: CONE FILTER
-//         // auto photon_distance = sqrtf(k_closest_photons.get_dist2(photonID));
-//         // auto photon_weight = 1 - (photon_distance / (CONE_FILTER_C * distance_to_furthest));
-//
-//         incoming_flux += (material.diffuse / PI) * vec3f(photon.color) * PHOTON_POWER;
-//     }
-//
-//     auto radiance_estimate = incoming_flux / (2*PI*sqrDistOfFurthestOneInClosest);
-//
-//     prd.colour *= radiance_estimate * material.albedo;
-//     prd.hit_point = rayOrg + tmax * rayDir;
-// }
-//
+inline __device__
+cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
+    cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
+    sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
+        cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
+    >(closest,queryPoint,photons,numPoints);
+ return closest;
+}
 
 inline __device__
 owl::vec3f calculate_refracted(const Material& material,

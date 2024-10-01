@@ -1,4 +1,4 @@
-#include "deviceCode.h"
+#include "../include/deviceCode.h"
 #include "shading.h"
 
 #include "../../common/cuda/helpers.h"
