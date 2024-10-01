@@ -4,7 +4,7 @@
 #include "../../common/cuda/helpers.h"
 #include "../include/deviceCode.h"
 
-#define K_NEAREST_NEIGHBOURS 100
+#define K_NEAREST_NEIGHBOURS 200
 #define K_MAX_DISTANCE 100
 #define CONE_FILTER_C 1.1f
 
@@ -99,11 +99,11 @@ owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, Photon* photons, const int 
      );
 
      auto in_flux = vec3f(0.f);
+    #pragma unroll
      for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
          const auto photonID = k_nearest.get_pointID(p);
+         if (photonID < 0 || photonID > num_photons) continue;
          auto photon = photons[photonID];
-
-         if (isZero(photon.pos)) continue;
 
          const auto photon_power = photon.power;
          const auto photon_distance = norm(vec3f(photon.pos) - hitpoint);
@@ -114,6 +114,6 @@ owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, Photon* photons, const int 
            * vec3f(photon.color);
      }
 
-     return in_flux / ((1 - (2/3) * (1.f/CONE_FILTER_C)) * 2*PI*query_area_radius_squared);
+     return in_flux / ((1 - (2.f/3.f) * (1.f/CONE_FILTER_C)) * 2*PI*query_area_radius_squared);
  }
 

@@ -47,12 +47,6 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
     auto distance_to_light = norm(light_dir);
     light_dir = normalize(light_dir);
 
-    if (prd.debug) {
-      printf("shadorg: %f %f %f\n", prd.hit_record.hitpoint.x, prd.hit_record.hitpoint.y, prd.hit_record.hitpoint.z);
-      printf("light_dir: %f %f %f\n", light_dir.x, light_dir.y, light_dir.z);
-      printf("light_dir: %f\n", distance_to_light);
-    }
-
     auto light_dot_norm = dot(light_dir, prd.hit_record.normal_at_hitpoint);
     //if (light_dot_norm < 0.f) continue; // light hits "behind" triangle
 
@@ -81,16 +75,15 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       ray.direction,
       prd.hit_record.normal_at_hitpoint);
 
-    direct_illumination += light_visibility/*
+    direct_illumination += light_visibility
       * CONSTANT_LIGHT_FACTOR
       * static_cast<float>(current_light.power)
       * light_dot_norm
       * (1.f / distance_to_light * distance_to_light)
       * (diffuse_brdf + specular_brdf)
-      * current_light.rgb*/;
+      * current_light.rgb;
 
   }
-  return direct_illumination;
 
   auto direct_term =  albedo * direct_illumination;
 
@@ -182,7 +175,8 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
 
   vec3f diffuse_term = diffuse_colour / DIFFUSE_SAMPLES;
 
-  return direct_term /*+ specular_term + caustics_term + diffuse_term */;
+  // direct_term + specular_term + caustics_term + diffuse_term;
+  return caustics_term;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()

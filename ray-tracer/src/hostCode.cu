@@ -54,6 +54,7 @@ void loadPhotons(Program &program, const std::string& filename) {
     program.photonsBuffer[i].pos = photonsFromFile[i].pos;
     program.photonsBuffer[i].dir = photonsFromFile[i].dir;
     program.photonsBuffer[i].color = photonsFromFile[i].color;
+    program.photonsBuffer[i].power = 0.1;
   }
   cukd::buildTree<Photon,Photon_traits>(program.photonsBuffer,program.numPhotons);
 }
