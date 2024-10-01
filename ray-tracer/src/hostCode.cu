@@ -17,6 +17,9 @@
 #include <cukd/builder.h>
 #include <cukd/knn.h>
 
+#define PHOTON_POWER 1.f
+#define CAUSTICS_PHOTON_POWER (float(PHOTON_POWER) * 0.5f)
+
 extern "C" char deviceCode_ptx[];
 
 Photon* readPhotonsFromFile(const std::string& filename, int& count) {
@@ -47,18 +50,40 @@ Photon* readPhotonsFromFile(const std::string& filename, int& count) {
   return photonArray;
 }
 
-void loadPhotons(Program &program, const std::string& filename) {
-  auto photonsFromFile = readPhotonsFromFile(filename, program.numPhotons);
-  CUKD_CUDA_CALL(MallocManaged((void **) &program.photonsBuffer, program.numPhotons * sizeof(Photon)));
-  for (int i=0; i < program.numPhotons; i++) {
-    program.photonsBuffer[i].pos = photonsFromFile[i].pos;
-    program.photonsBuffer[i].dir = photonsFromFile[i].dir;
-    program.photonsBuffer[i].color = photonsFromFile[i].color;
-    program.photonsBuffer[i].power = 0.1;
-  }
-  cukd::buildTree<Photon,Photon_traits>(program.photonsBuffer,program.numPhotons);
-}
+void loadPhotons(Program &program, const std::string& globalPhotonsFilename, const std::string& causticsPhotonsFilename) {
+  int nonCausticPhotonsNum = 0;
+  auto globalPhotonsFromFile = readPhotonsFromFile(globalPhotonsFilename, nonCausticPhotonsNum);
+  auto causticPhotonsFromFile = readPhotonsFromFile(causticsPhotonsFilename, program.numCausticPhotons);
+  program.numGlobalPhotons = nonCausticPhotonsNum + program.numCausticPhotons;
+  printf("Loaded %d photons (non-caustic %d, caustic %d)\n.", program.numGlobalPhotons, nonCausticPhotonsNum, program.numCausticPhotons);
 
+  CUKD_CUDA_CALL(MallocManaged((void **)&program.causticPhotons, program.numCausticPhotons * sizeof(Photon)));
+  CUKD_CUDA_CALL(MallocManaged((void **)&program.globalPhotons,  program.numGlobalPhotons  * sizeof(Photon)));
+
+  // Load in non Caustic photons to global map
+  for (int i=0; i < nonCausticPhotonsNum; i++) {
+    program.globalPhotons[i].pos = globalPhotonsFromFile[i].pos;
+    program.globalPhotons[i].dir = globalPhotonsFromFile[i].dir;
+    program.globalPhotons[i].color = globalPhotonsFromFile[i].color;
+    program.globalPhotons[i].power = PHOTON_POWER;
+  }
+
+  // Load caustic photons to both maps
+  for (int k=0; k < program.numCausticPhotons; k++) {
+    program.causticPhotons[k].pos   = causticPhotonsFromFile[k].pos;
+    program.causticPhotons[k].dir   = causticPhotonsFromFile[k].dir;
+    program.causticPhotons[k].color = causticPhotonsFromFile[k].color;
+    program.causticPhotons[k].power = CAUSTICS_PHOTON_POWER;
+
+    program.globalPhotons[nonCausticPhotonsNum+k].pos   = causticPhotonsFromFile[k].pos;
+    program.globalPhotons[nonCausticPhotonsNum+k].dir   = causticPhotonsFromFile[k].dir;
+    program.globalPhotons[nonCausticPhotonsNum+k].color = causticPhotonsFromFile[k].color;
+    program.globalPhotons[nonCausticPhotonsNum+k].power = CAUSTICS_PHOTON_POWER;
+  }
+
+  cukd::buildTree<Photon,Photon_traits>(program.globalPhotons,program.numGlobalPhotons);
+  cukd::buildTree<Photon,Photon_traits>(program.causticPhotons,program.numCausticPhotons);
+}
 void setupCamera(Program &program, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float fovy) {
   const float aspect = program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y);
   const float cosFovy = std::cos(fovy);
@@ -103,8 +128,10 @@ void setupRaygenProgram(Program &program) {
           { "camera.dir_dv", OWL_FLOAT3,      OWL_OFFSETOF(RayGenData,camera.dir_dv)},
           { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
           { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
-          { "photons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,photons)},
-          { "numPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numPhotons)},
+          { "globalPhotons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,globalPhotons)},
+          { "numGlobalPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numGlobalPhotons)},
+          { "causticPhotons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,causticPhotons)},
+          { "numCausticPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numCausticPhotons)},
           { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
           { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},
           { /* sentinel to mark end of list */ }
@@ -124,8 +151,10 @@ void setupRaygenProgram(Program &program) {
   owlRayGenSet3f    (program.rayGen,"camera.dir_dv",reinterpret_cast<const owl3f&>(program.camera.dir_dv));
   owlRayGenSetBuffer(program.rayGen,"lights",       program.lightsBuffer);
   owlRayGenSet1i    (program.rayGen,"numLights",    program.numLights);
-  owlRayGenSetPointer(program.rayGen,"photons",      program.photonsBuffer);
-  owlRayGenSet1i    (program.rayGen,"numPhotons",   program.numPhotons);
+  owlRayGenSetPointer(program.rayGen,"globalPhotons",     program.globalPhotons);
+  owlRayGenSet1i    (program.rayGen,"numGlobalPhotons",   program.numGlobalPhotons);
+  owlRayGenSetPointer(program.rayGen,"causticPhotons",    program.causticPhotons);
+  owlRayGenSet1i    (program.rayGen,"numCausticPhotons",  program.numCausticPhotons);
   owlRayGenSet1i    (program.rayGen,"samples_per_pixel", program.samplesPerPixel);
   owlRayGenSet1i    (program.rayGen,"max_ray_depth", program.maxDepth);
 }
@@ -143,7 +172,8 @@ int main(int ac, char **av)
 
   auto cfg = parse_config();
 
-  auto photons_filename = cfg["data"]["photons_file"].as_string();
+  auto global_photons_filename = cfg["data"]["photons_file"].as_string();
+  auto caustics_photons_filename = cfg["data"]["caustics_photons_file"].as_string();
   auto model_path = cfg["data"]["model_path"].as_string();
 
   auto lookAt = toml_to_vec3f(cfg["camera"]["look_at"]);
@@ -168,7 +198,7 @@ int main(int ac, char **av)
   program.geometryData = loadGeometry(program.owlContext, world);
 
   loadLights(program, world);
-  loadPhotons(program, photons_filename);
+  loadPhotons(program, global_photons_filename, caustics_photons_filename);
   setupCamera(program, lookFrom, lookAt, lookUp, fovy);
 
   setupMissProgram(program, sky_colour);

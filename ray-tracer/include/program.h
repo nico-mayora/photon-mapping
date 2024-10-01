@@ -17,8 +17,11 @@ struct Program {
 
     GeometryData geometryData;
 
-    Photon* photonsBuffer;
-    int numPhotons;
+    Photon* globalPhotons;
+    int numGlobalPhotons;
+    Photon* causticPhotons;
+    int numCausticPhotons;
+
     OWLBuffer lightsBuffer;
     int numLights;
 

@@ -15,8 +15,11 @@ struct RayGenData
 
     LightSource* lights;
     int numLights;
-    Photon* photons;
-    int numPhotons;
+
+    Photon* globalPhotons;
+    int numGlobalPhotons;
+    Photon* causticPhotons;
+    int numCausticPhotons;
 
     int samples_per_pixel;
     int max_ray_depth;

@@ -147,6 +147,7 @@ int main(int ac, char **av)
   program.maxCausticsPhotons = cfg["photon-mapper"]["max_caustics_photons"].as_integer();
   program.maxDepth = cfg["photon-mapper"]["max_depth"].as_integer();
 
+
   auto *ai_importer = new Assimp::Importer;
   program.world =  assets::import_scene(ai_importer, model_path);
 

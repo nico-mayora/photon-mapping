@@ -108,25 +108,25 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
   // Caustics
   // TODO - Use caustics map
 
-  vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, self.photons, self.numPhotons, diffuse_brdf);
+  vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, self.globalPhotons, self.numGlobalPhotons, diffuse_brdf);
 
   // Diffuse scattering
-  float _dist;
-  auto k_nearest_global = KNearestPhotons(
-    prd.hit_record.hitpoint, self.photons, self.numPhotons, _dist
-  );
-  vec3f photons_average_dir = 0.f;
-  for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
-    auto photonID = k_nearest_global.get_pointID(p);
-    auto photon = self.photons[photonID];
-
-    if (isZero(photon.pos)) continue;
-
-    photons_average_dir += vec3f(photon.dir);
-  }
-  photons_average_dir = -photons_average_dir / K_NEAREST_NEIGHBOURS;
+  // float _dist;
+  // auto k_nearest_global = KNearestPhotons(
+  //   prd.hit_record.hitpoint, self.photons, self.numPhotons, _dist
+  // );
+  // vec3f photons_average_dir = 0.f;
+  // for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
+  //   auto photonID = k_nearest_global.get_pointID(p);
+  //   auto photon = self.photons[photonID];
+  //
+  //   if (isZero(photon.pos)) continue;
+  //
+  //   photons_average_dir += vec3f(photon.dir);
+  // }
+  // photons_average_dir = -photons_average_dir / K_NEAREST_NEIGHBOURS;
   auto normal = prd.hit_record.normal_at_hitpoint;
-  vec3f biased_scatter_dir = normalize(photons_average_dir + normal);
+  // vec3f biased_scatter_dir = normalize(photons_average_dir + normal);
 
   vec3f diffuse_colour = 0.f;
   for (int s = 0; s < DIFFUSE_SAMPLES; s++) {
@@ -166,8 +166,8 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
 
     diffuse_colour += gatherPhotons(
       diffuse_prd.hit_record.hitpoint,
-      self.photons,
-      self.numPhotons,
+      self.globalPhotons,
+      self.numGlobalPhotons,
       scattered_diffuse_brdf
     ) * scattered_albedo;
 

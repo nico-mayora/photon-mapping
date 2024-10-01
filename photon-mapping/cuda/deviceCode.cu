@@ -1,4 +1,4 @@
-#include "deviceCode.h"
+#include "../include/deviceCode.h"
 #include "../../common/cuda/helpers.h"
 #define PHOTON_ATTENUATION_FACTOR 150
 #define ATTENUATE_PHOTONS false
@@ -47,7 +47,7 @@ inline __device__ void shootCausticsPhoton(const PhotonMapperRGD &self, Ray &ray
   for (int i = 0; i < self.maxDepth; i++) {
     owl::traceRay(self.world, ray, prd);
 
-    if(i == 0 && prd.event != SCATTER_REFRACT) {
+    if(i == 0 && prd.event == SCATTER_DIFFUSE) {
       break;
     }
 
