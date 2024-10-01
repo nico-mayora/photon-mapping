@@ -4,14 +4,14 @@
 #include "../../common/cuda/helpers.h"
 #include "../include/deviceCode.h"
 
-#define K_NEAREST_NEIGHBOURS 200
+#define K_NEAREST_NEIGHBOURS 300
 #define K_MAX_DISTANCE 100
-#define CONE_FILTER_C 1.1f
+#define CONE_FILTER_C 1.3f
 
 inline __device__
 cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
     cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
-    sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
+    sqrDistOfFurthestOneInClosest = cukd::stackFree::knn<
         cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
     >(closest,queryPoint,photons,numPoints);
  return closest;

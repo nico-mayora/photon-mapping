@@ -1,11 +1,12 @@
 [camera]
 look_from = [80.0, 30.0, 0.0]
 look_at = [10.0, 20.0, 0.0]
-look_up = [0.0, -1.0, 0.0]
+look_up = [0.0, 1.0, 0.0]
 fovy = 0.87
 
 [data]
-photons_file = "photons.txt"
+photons_file = "global_sphere_photons.txt"
+caustics_photons_file = "caustic_sphere_photons.txt"
 model_path = "../assets/models/sphere/sphere.glb"
 
 [ray-tracer]
@@ -17,7 +18,10 @@ depth = 30
 
 [photon-viewer]
 output_filename = "result-photon-viewer.png"
+caustics_output_filename = "caustics-photon-viewer.png"
 fb_size = [1920, 1080]
 
 [photon-mapper]
-max_depth = 1
+max_depth = 100
+max_photons = 10_000_000
+max_caustics_photons = 10_000_000

@@ -17,8 +17,8 @@
 #include <cukd/builder.h>
 #include <cukd/knn.h>
 
-#define PHOTON_POWER 1.f
-#define CAUSTICS_PHOTON_POWER (float(PHOTON_POWER) * 0.5f)
+#define PHOTON_POWER (0.072f)
+#define CAUSTICS_PHOTON_POWER (float(PHOTON_POWER) * 0.32f)
 
 extern "C" char deviceCode_ptx[];
 

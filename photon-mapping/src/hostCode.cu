@@ -103,7 +103,7 @@ void runNormal(Program &program, const std::string &output_filename) {
   for (auto light : program.world->light_sources) {
     setPointLightRayGenVariables(program, light, owl::vec2i (200, 200), false);
     owlBuildSBT(program.owlContext);
-    owlRayGenLaunch2D(program.rayGen,200,200);
+    owlRayGenLaunch2D(program.rayGen,1,program.maxPhotons);
   }
 
   LOG("done with launch, writing photons ...")
@@ -117,7 +117,7 @@ void runCaustics(Program &program, const std::string &output_filename) {
   for (auto light : program.world->light_sources) {
     setPointLightRayGenVariables(program, light, owl::vec2i (200, 200), true);
     owlBuildSBT(program.owlContext);
-    owlRayGenLaunch2D(program.rayGen,200,200);
+    owlRayGenLaunch2D(program.rayGen,1,program.maxCausticsPhotons);
   }
 
   LOG("done with launch, writing caustics photons ...")
@@ -156,7 +156,7 @@ int main(int ac, char **av)
     totalPower += light.power;
   }
   for (auto & light : program.world->light_sources) {
-    light.num_photons = static_cast<int>(light.power / totalPower * MAX_PHOTONS);
+    light.num_photons = static_cast<int>((light.power / totalPower) * program.maxPhotons);
   }
 
   LOG_OK("Loaded world.")

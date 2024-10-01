@@ -5,9 +5,6 @@
 #include "owl/include/owl/common/math/random.h"
 #include "photon.h"
 
-#define MAX_RAY_BOUNCES 200
-#define MAX_PHOTONS 100000
-
 struct PhotonMapperRGD
 {
     Photon *photons;
