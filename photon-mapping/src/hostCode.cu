@@ -52,8 +52,10 @@ void setupPointLightRayGenProgram(Program &program) {
   OWLVarDecl rayGenVars[] = {
           { "photons",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photons)},
           { "photonsCount",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photonsCount)},
+          { "maxPhotons",OWL_INT,OWL_OFFSETOF(PointLightRGD,maxPhotons)},
           { "dims",OWL_INT2,OWL_OFFSETOF(PointLightRGD,dims)},
           { "maxBounces",OWL_INT,OWL_OFFSETOF(PointLightRGD, maxDepth)},
+          {"causticsMode", OWL_BOOL, OWL_OFFSETOF(PointLightRGD, causticsMode)},
           { "world",OWL_GROUP,OWL_OFFSETOF(PointLightRGD,world)},
           { "position",OWL_FLOAT3,OWL_OFFSETOF(PointLightRGD,position)},
           { "color",OWL_FLOAT3,OWL_OFFSETOF(PointLightRGD,color)},
@@ -65,17 +67,64 @@ void setupPointLightRayGenProgram(Program &program) {
                                    sizeof(PointLightRGD),
                                    rayGenVars,-1);
 
-  owlRayGenSetBuffer(program.rayGen,"photons",program.photonsBuffer);
-  owlRayGenSetBuffer(program.rayGen,"photonsCount",program.photonsCount);
   owlRayGenSetGroup(program.rayGen,"world",program.geometryData.worldGroup);
   owlRayGenSet1i(program.rayGen,"maxBounces",program.maxDepth);
 }
 
-void setPointLightRayGenVariables(Program &program, const LightSource &light, owl::vec2i dims) {
+void setPointLightRayGenVariables(Program &program, const LightSource &light, owl::vec2i dims, bool causticsMode) {
+  owlRayGenSet1b(program.rayGen,"causticsMode",causticsMode);
   owlRayGenSet2i(program.rayGen,"dims",reinterpret_cast<const owl2i&>(dims));
   owlRayGenSet3f(program.rayGen,"position",reinterpret_cast<const owl3f&>(light.pos));
   owlRayGenSet3f(program.rayGen,"color",reinterpret_cast<const owl3f&>(light.rgb));
   owlRayGenSet1f(program.rayGen,"intensity",light.power);
+
+  if (causticsMode) {
+    owlRayGenSetBuffer(program.rayGen,"photons",program.causticsPhotonsBuffer);
+    owlRayGenSetBuffer(program.rayGen,"photonsCount",program.causticsPhotonsCount);
+    owlRayGenSet1i(program.rayGen,"maxPhotons",program.maxCausticsPhotons);
+  } else {
+    owlRayGenSetBuffer(program.rayGen,"photons",program.photonsBuffer);
+    owlRayGenSetBuffer(program.rayGen,"photonsCount",program.photonsCount);
+    owlRayGenSet1i(program.rayGen,"maxPhotons",program.maxPhotons);
+  }
+}
+
+void initPhotonBuffers(Program &program) {
+  program.photonsBuffer = owlHostPinnedBufferCreate(program.owlContext, OWL_USER_TYPE(Photon), program.maxPhotons);
+  program.photonsCount = owlHostPinnedBufferCreate(program.owlContext, OWL_INT, 1);
+  owlBufferClear(program.photonsCount);
+
+  program.causticsPhotonsBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_USER_TYPE(Photon),program.maxCausticsPhotons);
+  program.causticsPhotonsCount = owlHostPinnedBufferCreate(program.owlContext, OWL_INT, 1);
+  owlBufferClear(program.causticsPhotonsCount);
+}
+
+void runNormal(Program &program, const std::string &output_filename) {
+  for (auto light : program.world->light_sources) {
+    setPointLightRayGenVariables(program, light, owl::vec2i (200, 200), false);
+    owlBuildSBT(program.owlContext);
+    owlRayGenLaunch2D(program.rayGen,200,200);
+  }
+
+  LOG("done with launch, writing photons ...")
+  auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.photonsBuffer, 0));
+  auto count = *(int*)owlBufferGetPointer(program.photonsCount, 0);
+
+  writeAlivePhotons(fb, count, output_filename);
+}
+
+void runCaustics(Program &program, const std::string &output_filename) {
+  for (auto light : program.world->light_sources) {
+    setPointLightRayGenVariables(program, light, owl::vec2i (200, 200), true);
+    owlBuildSBT(program.owlContext);
+    owlRayGenLaunch2D(program.rayGen,200,200);
+  }
+
+  LOG("done with launch, writing caustics photons ...")
+  auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.causticsPhotonsBuffer, 0));
+  auto count = *(int*)owlBufferGetPointer(program.causticsPhotonsCount, 0);
+
+  writeAlivePhotons(fb, count, output_filename);
 }
 
 int main(int ac, char **av)
@@ -92,29 +141,31 @@ int main(int ac, char **av)
   auto cfg = parse_config();
 
   auto photons_filename = cfg["data"]["photons_file"].as_string();
+  auto caustics_photons_filename = cfg["data"]["caustics_photons_file"].as_string();
   auto model_path = cfg["data"]["model_path"].as_string();
+  program.maxPhotons = cfg["photon-mapper"]["max_photons"].as_integer();
+  program.maxCausticsPhotons = cfg["photon-mapper"]["max_caustics_photons"].as_integer();
   program.maxDepth = cfg["photon-mapper"]["max_depth"].as_integer();
 
   auto *ai_importer = new Assimp::Importer;
-  auto world =  assets::import_scene(ai_importer, model_path);
+  program.world =  assets::import_scene(ai_importer, model_path);
+
   double totalPower = 0;
-  for (const auto & light : world->light_sources) {
+  for (const auto & light : program.world->light_sources) {
     totalPower += light.power;
   }
-  for (auto & light : world->light_sources) {
+  for (auto & light : program.world->light_sources) {
     light.num_photons = static_cast<int>(light.power / totalPower * MAX_PHOTONS);
   }
 
   LOG_OK("Loaded world.")
 
-  program.geometryData = loadGeometry(program.owlContext, world);
+  program.geometryData = loadGeometry(program.owlContext, program.world);
 
   owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType, 0, program.owlModule,"triangleMeshClosestHit");
   owlMissProgCreate(program.owlContext, program.owlModule, "miss", 0, nullptr, -1);
 
-  program.photonsBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_USER_TYPE(Photon),MAX_PHOTONS * MAX_RAY_BOUNCES);
-  program.photonsCount = owlHostPinnedBufferCreate(program.owlContext, OWL_INT, 1);
-  owlBufferClear(program.photonsCount);
+  initPhotonBuffers(program);
 
   setupPointLightRayGenProgram(program);
 
@@ -123,20 +174,8 @@ int main(int ac, char **av)
 
   LOG("launching ...")
 
-  for (auto light : world->light_sources) {
-    setPointLightRayGenVariables(program, light, owl::vec2i (200, 200));
-
-    owlBuildSBT(program.owlContext);
-
-    owlRayGenLaunch2D(program.rayGen,200,200);
-  }
-
-  LOG("done with launch, writing picture ...")
-  // for host pinned mem it doesn't matter which device we query...
-  auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.photonsBuffer, 0));
-  auto count = *(int*)owlBufferGetPointer(program.photonsCount, 0);
-
-  writeAlivePhotons(fb, count, photons_filename);
+  runNormal(program, photons_filename);
+  runCaustics(program, caustics_photons_filename);
 
   LOG("destroying devicegroup ...");
   owlContextDestroy(program.owlContext);

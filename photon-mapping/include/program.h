@@ -12,10 +12,16 @@ struct Program {
     OWLModule owlModule;
     OWLRayGen rayGen;
 
+    std::unique_ptr<World> world;
+
     GeometryData geometryData;
 
     OWLBuffer photonsBuffer;
     OWLBuffer photonsCount;
+    OWLBuffer causticsPhotonsBuffer;
+    OWLBuffer causticsPhotonsCount;
 
     int maxDepth;
+    int maxPhotons;
+    int maxCausticsPhotons;
 };

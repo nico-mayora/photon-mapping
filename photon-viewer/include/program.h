@@ -1,7 +1,6 @@
 #pragma once
 
 #include "owl/owl.h"
-#include "../../common/src/camera.h"
 #include "photon.h"
 #include "../../common/src/world.h"
 #include "owl/common/math/vec.h"
@@ -20,5 +19,10 @@ struct Program {
     OWLBuffer photonsBuffer;
     int numPhotons;
 
-    Camera camera;
+    struct {
+        owl::vec3f lookAt;
+        owl::vec3f lookFrom;
+        owl::vec3f lookUp;
+        float fovy;
+    } camera;
 };

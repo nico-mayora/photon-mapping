@@ -7,6 +7,64 @@
 
 using namespace owl;
 
+inline __device__ bool savePhoton(const PhotonMapperRGD &self, PhotonMapperPRD &prd) {
+  int photonIndex = atomicAdd(self.photonsCount, 1);
+  if (photonIndex >= self.maxPhotons) {
+    return false;
+  }
+
+  auto photon = &self.photons[photonIndex];
+  photon->color = prd.color;
+  photon->pos = prd.scattered.origin;
+  return true;
+}
+
+inline __device__ void updateScatteredRay(Ray &ray, PhotonMapperPRD &prd) {
+  ray.origin = prd.scattered.origin;
+  ray.direction = prd.scattered.direction;
+  prd.color = prd.scattered.color;
+}
+
+inline __device__ void shootPhoton(const PhotonMapperRGD &self, Ray &ray, PhotonMapperPRD &prd) {
+  for (int i = 0; i < self.maxDepth; i++) {
+    owl::traceRay(self.world, ray, prd);
+
+    if (i > 0 && prd.event & (ABSORBED | SCATTER_DIFFUSE)) {
+      if(!savePhoton(self, prd)) {
+        break;
+      }
+    }
+
+    if (prd.event & (SCATTER_DIFFUSE | SCATTER_SPECULAR)) {
+      updateScatteredRay(ray, prd);
+    } else {
+      break;
+    }
+  }
+}
+
+inline __device__ void shootCausticsPhoton(const PhotonMapperRGD &self, Ray &ray, PhotonMapperPRD &prd) {
+  for (int i = 0; i < self.maxDepth; i++) {
+    owl::traceRay(self.world, ray, prd);
+
+    if(i == 0 && prd.event != SCATTER_REFRACT) {
+      break;
+    }
+
+    if (i > 0 && prd.event & (ABSORBED | SCATTER_DIFFUSE)) {
+      if(!savePhoton(self, prd)) {
+        break;
+      }
+    }
+
+    if (prd.event & (SCATTER_DIFFUSE | SCATTER_SPECULAR | SCATTER_REFRACT)) {
+      updateScatteredRay(ray, prd);
+    } else {
+      break;
+    }
+  }
+}
+
 OPTIX_RAYGEN_PROGRAM(pointLightRayGen)(){
   const auto &self = owl::getProgramData<PointLightRGD>();
   const vec2i id = owl::getLaunchIndex();
@@ -20,23 +78,10 @@ OPTIX_RAYGEN_PROGRAM(pointLightRayGen)(){
   ray.direction = randomPointInUnitSphere(prd.random);
   ray.tmin = EPS;
 
-  for(int i = 0; i < self.maxDepth; i++) {
-    owl::traceRay(self.world, ray, prd);
-
-    if (i > 0 && prd.event & (ABSORBED | SCATTER_DIFFUSE)) {
-      int photonIndex = atomicAdd(self.photonsCount, 1);
-      auto photon = &self.photons[photonIndex];
-      photon->color = prd.color;
-      photon->pos = prd.scattered.origin;
-    }
-
-    if (prd.event & (SCATTER_DIFFUSE | SCATTER_SPECULAR | SCATTER_REFRACT)) {
-      ray.origin = prd.scattered.origin;
-      ray.direction = prd.scattered.direction;
-      prd.color = prd.scattered.color;
-    } else {
-      break;
-    }
+  if (self.causticsMode) {
+    shootCausticsPhoton(self, ray, prd);
+  } else {
+    shootPhoton(self, ray, prd);
   }
 }
 
