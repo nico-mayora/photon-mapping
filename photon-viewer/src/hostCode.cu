@@ -50,13 +50,13 @@ Photon* readPhotonsFromFile(const std::string& filename, int& count) {
   return photonArray;
 }
 
-void loadPhotons(Program &program, const std::string& filename, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float fovy) {
+void loadPhotons(Program &program, const std::string& filename) {
   auto photons = readPhotonsFromFile(filename, program.numPhotons);
 
-  auto viewMatrix = glm::lookAt(glm::vec3(lookFrom.x, lookFrom.y, lookFrom.z),
-                                glm::vec3(lookAt.x, lookAt.y, lookAt.z),
-                                glm::vec3(lookUp.x, lookUp.y, lookUp.z));
-  auto perspectiveMatrix = glm::perspective(fovy, program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y), 0.1f, 1000.f);
+  auto viewMatrix = glm::lookAt(glm::vec3(program.camera.lookFrom.x, program.camera.lookFrom.y, program.camera.lookFrom.z),
+                                glm::vec3(program.camera.lookAt.x, program.camera.lookAt.y, program.camera.lookAt.z),
+                                glm::vec3(program.camera.lookUp.x, program.camera.lookUp.y, program.camera.lookUp.z));
+  auto perspectiveMatrix = glm::perspective(program.camera.fovy, program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y), 0.1f, 1000.f);
   auto projectionMatrix = perspectiveMatrix * viewMatrix;
 
   for (int i = 0; i < program.numPhotons; i++) {
@@ -72,17 +72,6 @@ void loadPhotons(Program &program, const std::string& filename, const owl::vec3f
   }
 
   program.photonsBuffer = owlDeviceBufferCreate(program.owlContext, OWL_USER_TYPE(Photon), program.numPhotons, photons);
-}
-
-void setupCamera(Program &program, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float fovy) {
-  const float aspect = program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y);
-  float cosFovy = std::cos(fovy);
-
-  program.camera.pos = lookFrom;
-  program.camera.dir_00 = normalize(lookAt-lookFrom);
-  program.camera.dir_du = cosFovy * aspect * normalize(cross(program.camera.dir_00, lookUp));
-  program.camera.dir_dv = cosFovy * normalize(cross(program.camera.dir_du, program.camera.dir_00));
-  program.camera.dir_00 -= 0.5f * (program.camera.dir_du + program.camera.dir_dv);
 }
 
 void setupMissProgram(Program &program) {
@@ -112,41 +101,29 @@ void setupRaygenProgram(Program &program) {
   owlRayGenSetBuffer(program.rayGen,"frameBuffer",program.frameBuffer);
   owlRayGenSet2i(program.rayGen,"frameBufferSize",reinterpret_cast<const owl2i&>(program.frameBufferSize));
   owlRayGenSetGroup(program.rayGen,"world",program.geometryData.worldGroup);
-  owlRayGenSet3f(program.rayGen,"cameraPos",reinterpret_cast<const owl3f&>(program.camera.pos));
+  owlRayGenSet3f(program.rayGen,"cameraPos",reinterpret_cast<const owl3f&>(program.camera.lookFrom));
   owlRayGenSetBuffer(program.rayGen,"photons",program.photonsBuffer);
   owlRayGenSet1i(program.rayGen,"numPhotons",program.numPhotons);
 }
 
-int main(int ac, char **av)
-{
-  LOG("Starting up...")
-
+void run(toml::value &cfg, const std::string &photons_filename, const std::string &output_filename) {
   Program program;
   program.owlContext = owlContextCreate(nullptr,1);
   program.owlModule = owlModuleCreate(program.owlContext, deviceCode_ptx);
   owlContextSetRayTypeCount(program.owlContext, 1);
 
-  LOG("Loading Config file...")
+  program.camera.lookAt = toml_to_vec3f(cfg["camera"]["look_at"]);
+  program.camera.lookFrom = toml_to_vec3f(cfg["camera"]["look_from"]);
+  program.camera.lookUp = toml_to_vec3f(cfg["camera"]["look_up"]);
+  program.camera.fovy = static_cast<float>(cfg["camera"]["fovy"].as_floating());
 
-  auto cfg = parse_config();
-
-  auto photons_filename = cfg["data"]["photons_file"].as_string();
-  auto model_path = cfg["data"]["model_path"].as_string();
-
-  auto lookAt = toml_to_vec3f(cfg["camera"]["look_at"]);
-  auto lookFrom = toml_to_vec3f(cfg["camera"]["look_from"]);
-  auto lookUp = toml_to_vec3f(cfg["camera"]["look_up"]);
-  float fovy = static_cast<float>(cfg["camera"]["fovy"].as_floating());
-
-  auto output_filename = cfg["photon-viewer"]["output_filename"].as_string();
   program.frameBufferSize = toml_to_vec2i(cfg["photon-viewer"]["fb_size"]);
+  program.frameBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_INT,program.frameBufferSize.x * program.frameBufferSize.y);
 
   auto *ai_importer = new Assimp::Importer;
-  auto world =  assets::import_scene(ai_importer, model_path);
+  auto world =  assets::import_scene(ai_importer, cfg["data"]["model_path"].as_string());
 
   LOG_OK("Loaded world.");
-
-  program.frameBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_INT,program.frameBufferSize.x * program.frameBufferSize.y);
 
   int frameBufferLength = program.frameBufferSize.x * program.frameBufferSize.y;
   int *initialFrameBuffer = new int[frameBufferLength];
@@ -158,8 +135,7 @@ int main(int ac, char **av)
 
   program.geometryData = loadGeometry(program.owlContext, world);
 
-  loadPhotons(program, photons_filename, lookFrom, lookAt, lookUp, fovy);
-  setupCamera(program, lookFrom, lookAt, lookUp, fovy);
+  loadPhotons(program, photons_filename);
 
   setupMissProgram(program);
   setupClosestHitProgram(program);
@@ -175,6 +151,28 @@ int main(int ac, char **av)
   stbi_write_png(output_filename.c_str(),program.frameBufferSize.x,program.frameBufferSize.y,4,fb,program.frameBufferSize.x*sizeof(uint32_t));
 
   owlContextDestroy(program.owlContext);
+}
+
+int main(int ac, char **av)
+{
+  LOG("Starting up...")
+  LOG("Loading Config file...")
+
+  auto cfg = parse_config();
+
+  auto photons_filename = cfg["data"]["photons_file"].as_string();
+  auto caustics_photons_filename = cfg["data"]["caustics_photons_file"].as_string();
+
+  auto output_filename = cfg["photon-viewer"]["output_filename"].as_string();
+  auto caustics_output_filename = cfg["photon-viewer"]["caustics_output_filename"].as_string();
+
+  LOG("Running photon viewer...")
+  run(cfg, photons_filename, output_filename);
+  LOG_OK("Done with photon viewer.")
+
+  LOG("Running caustics viewer...")
+  run(cfg, caustics_photons_filename, caustics_output_filename);
+  LOG_OK("Done with caustics viewer.")
 
   return 0;
 }

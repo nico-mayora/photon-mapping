@@ -157,8 +157,7 @@ int main(int ac, char **av)
   program.maxDepth = static_cast<int>(cfg["ray-tracer"]["depth"].as_integer());
 
   auto *ai_importer = new Assimp::Importer;
-  std::string path = "../assets/models/dragon/dragon-box.glb";
-  auto world =  assets::import_scene(ai_importer, path);
+  auto world =  assets::import_scene(ai_importer, model_path);
 
   LOG_OK("Loaded world.");
 
