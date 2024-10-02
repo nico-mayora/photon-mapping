@@ -25,10 +25,10 @@ inline __device__ float norm(owl::vec3f v) {
 }
 
 inline __device__ owl::vec3f randomPointInUnitSphere(Random &random) {
-  const double u = random();
-  const double v = random();
-  const double theta = 2.0 * M_PI * u;
-  const double phi = acos(2.0 * v - 1.0);
+  const float u = random();
+  const float v = random();
+  const float theta = 2.0 * M_PI * u;
+  const float phi = acos(2.0 * v - 1.0);
 
   return owl::vec3f(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
 }
