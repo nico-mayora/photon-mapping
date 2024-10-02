@@ -8,8 +8,8 @@
 #include <cukd/knn.h>
 
 #define DIRECT_LIGHT_FACTOR 0.1f
-#define CAUSTICS_FACTOR 0.01f
-#define DIFFUSE_FACTOR 0.1f
+#define CAUSTICS_FACTOR 0.05f
+#define DIFFUSE_FACTOR 0.2f
 #define SPECULAR_FACTOR 1.f
 
 #define NUM_DIFFUSE_SAMPLES 25
@@ -101,7 +101,8 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
   auto direct_term =  albedo * direct_illumination;
 
   // Caustics
-  vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, self.causticPhotons, self.numCausticPhotons, diffuse_brdf);
+  vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, prd.hit_record.normal_at_hitpoint, self.causticPhotons,
+                                      self.numCausticPhotons, diffuse_brdf);
 
   // Diffuse term
   vec3f diffuse_term = 0.f;
@@ -142,8 +143,8 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     {
       float scattered_diffuse_brdf = diffuse_prd.hit_record.material.diffuse / PI;
 
-      diffuse_colour = gatherPhotons(diffuse_prd.hit_record.hitpoint, self.globalPhotons, self.numGlobalPhotons,
-                                     scattered_diffuse_brdf);
+      diffuse_colour = gatherPhotons(diffuse_prd.hit_record.hitpoint, diffuse_prd.hit_record.normal_at_hitpoint,
+                                     self.globalPhotons, self.numGlobalPhotons, scattered_diffuse_brdf);
 
       diffuse_term += diffuse_colour * diffuse_prd.hit_record.material.albedo;
     }

@@ -6,7 +6,7 @@
 
 #define K_NEAREST_NEIGHBOURS 50
 #define K_MAX_DISTANCE 100
-#define CONE_FILTER_C 1.2f
+#define CONE_FILTER_C 1.3f
 
 inline __device__
 cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
@@ -91,7 +91,7 @@ inline __device__ float specularBrdf(const float specular_coefficient,
 }
 
 inline __device__
-owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, Photon* photons, const int num_photons,const float diffuse_brdf) {
+owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, Photon* photons, const int num_photons,const float diffuse_brdf) {
      using namespace owl;
      float query_area_radius_squared = 0.f;
      auto k_nearest = KNearestPhotons(
@@ -105,7 +105,11 @@ owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, Photon* photons, const int 
          if (photonID < 0 || photonID > num_photons) continue;
          auto photon = photons[photonID];
 
-         const auto photon_power = photon.power;
+         auto w_prime = normalize(vec3f(photon.dir));
+         if (dot(w_prime, normal) < 0.f) w_prime = -w_prime;
+         const auto w_prime_dot_n = dot(w_prime, normal);
+         printf("wpdn: %f ", w_prime_dot_n);
+         const auto photon_power = photon.power * w_prime_dot_n;
          const auto photon_distance = norm(vec3f(photon.pos) - hitpoint);
          const auto photon_weight = 1 - (photon_distance / sqrtf(query_area_radius_squared) * CONE_FILTER_C);
 

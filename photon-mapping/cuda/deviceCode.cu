@@ -16,6 +16,7 @@ inline __device__ bool savePhoton(const PhotonMapperRGD &self, PhotonMapperPRD &
   auto photon = &self.photons[photonIndex];
   photon->color = prd.color;
   photon->pos = prd.scattered.origin;
+  //photon->dir = prd.scattered.direction;
   return true;
 }
 
