@@ -20,4 +20,7 @@ output_filename = "result-photon-viewer.png"
 fb_size = [1920, 1080]
 
 [photon-mapper]
-max_depth = 1
+max_depth = 10
+max_photons = 1000000
+max_caustics_photons = 100000
+photons_per_watt = 1000

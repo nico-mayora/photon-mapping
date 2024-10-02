@@ -24,4 +24,5 @@ struct Program {
     int maxDepth;
     int maxPhotons;
     int maxCausticsPhotons;
+    int photonsPerWatt;
 };
