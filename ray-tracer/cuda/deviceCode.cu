@@ -7,17 +7,23 @@
 #include "owl/RayGen.h"
 #include <cukd/knn.h>
 
-#define CONSTANT_LIGHT_FACTOR 0.1f
+#define DIRECT_LIGHT_FACTOR 0.1f
+#define CAUSTICS_FACTOR 0.01f
+#define DIFFUSE_FACTOR 0.1f
+#define SPECULAR_FACTOR 1.f
+
+#define NUM_DIFFUSE_SAMPLES 25
 
 using namespace owl;
 
+// Work-around to adding up vec3f throwing a CUDA runtime error.
 struct MyColour
 {
   float r, g, b;
 };
 
 inline __device__
-MyColour tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
+MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
   uint32_t p0, p1;
   packPointer(&prd, p0, p1);
   optixTrace(self.world,
@@ -94,42 +100,87 @@ MyColour tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth)
 
   auto direct_term =  albedo * direct_illumination;
 
-  // Specular Reflection
-  bool absorbed;
-  float coefficient;
-  auto out_dir = reflect_or_refract_ray(
-    prd.hit_record.material, ray.direction,
-    prd.hit_record.normal_at_hitpoint, prd.random,
-    absorbed, coefficient
-  );
-
-  vec3f specular_term = 0.f;
-  // TODO: This fails - OptiX does not support recursion.
-  // if (!absorbed) {
-  //   auto out_ray = Ray(prd.hit_record.hitpoint, out_dir, EPS, INFTY);
-  //
-  //   auto reflected_irradiance = tracePath(self, out_ray, prd, depth-1);
-  //   specular_term = reflected_irradiance * coefficient;
-  // }
-
   // Caustics
-
   vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, self.causticPhotons, self.numCausticPhotons, diffuse_brdf);
 
-  // Diffuse term approximation
-  vec3f diffuse_term = gatherPhotons(
-    prd.hit_record.hitpoint,
-    self.globalPhotons,
-    self.numGlobalPhotons,
-    diffuse_brdf
-  );
+  // Diffuse term
+  vec3f diffuse_term = 0.f;
+  #pragma unroll
+  for (int s = 0; s < NUM_DIFFUSE_SAMPLES && diffuse_brdf > 0.f; s++) {
+    vec3f normal = normalize(prd.hit_record.normal_at_hitpoint);
+
+    vec3f random_vec, random_direction;
+    do {
+      randomUnitVector(prd.random, random_vec);
+      random_direction = normal + random_vec;
+    } while (nearZero(random_direction));
+
+    random_direction = normalize(random_direction);
+
+    PerRayData diffuse_prd;
+    //diffuse_prd.random.init(prd.random(), prd.random());
+    diffuse_prd.ray_missed = false;
+    uint32_t d0, d1;
+    packPointer(&diffuse_prd, d0, d1);
+
+    optixTrace(self.world,
+      prd.hit_record.hitpoint,
+      random_direction,
+      EPS,
+      INFTY,
+      0.f,
+      OptixVisibilityMask(255),
+      OPTIX_RAY_FLAG_DISABLE_ANYHIT,
+      DIFFUSE,
+      RAY_TYPES_COUNT,
+      DIFFUSE,
+      d0, d1
+    );
+
+    vec3f diffuse_colour = 0.f;
+    if (diffuse_prd.hit_record.material.diffuse > 0.f)
+    {
+      float scattered_diffuse_brdf = diffuse_prd.hit_record.material.diffuse / PI;
+
+      diffuse_colour = gatherPhotons(diffuse_prd.hit_record.hitpoint, self.globalPhotons, self.numGlobalPhotons,
+                                     scattered_diffuse_brdf);
+
+      diffuse_term += diffuse_colour * diffuse_prd.hit_record.material.albedo;
+    }
+  }
+  diffuse_term /= (float)NUM_DIFFUSE_SAMPLES;
 
   MyColour test;
-  test.r = 0.7*diffuse_term.x + 0.10f*caustics_term.x + CONSTANT_LIGHT_FACTOR*direct_term.x;
-  test.g = 0.7*diffuse_term.y + 0.10f*caustics_term.y + CONSTANT_LIGHT_FACTOR*direct_term.y;
-  test.b = 0.7*diffuse_term.z + 0.10f*caustics_term.z + CONSTANT_LIGHT_FACTOR*direct_term.z;
+  test.r = DIFFUSE_FACTOR*diffuse_term.x + CAUSTICS_FACTOR*caustics_term.x + DIRECT_LIGHT_FACTOR*direct_term.x;
+  test.g = DIFFUSE_FACTOR*diffuse_term.y + CAUSTICS_FACTOR*caustics_term.y + DIRECT_LIGHT_FACTOR*direct_term.y;
+  test.b = DIFFUSE_FACTOR*diffuse_term.z + CAUSTICS_FACTOR*caustics_term.z + DIRECT_LIGHT_FACTOR*direct_term.z;
 
   return test;
+}
+
+// WIP
+inline __device__
+vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
+  vec3f colour = 0.f;
+  depth = 1; //DEBUG
+  for (int d = 0; d < depth; d++) {
+    // Diffuse terms
+    const auto [r, g, b] = ray_colour(self, ray, prd);
+    colour += vec3f(r, g, b);
+  /*
+    bool absorbed;
+    float coefficient;
+    auto out_dir = reflect_or_refract_ray(
+      prd.hit_record.material, ray.direction,
+      prd.hit_record.normal_at_hitpoint, prd.random,
+      absorbed, coefficient
+    );
+
+    ray = Ray(prd.hit_record.hitpoint, out_dir, EPS, INFTY);
+    */
+  }
+
+  return colour;
 }
 
 OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
@@ -158,8 +209,7 @@ OPTIX_RAYGEN_PROGRAM(simpleRayGen)()
                   + screen.u * self.camera.dir_du
                   + screen.v * self.camera.dir_dv);
 
-    const auto [r, g, b] = tracePath(self, ray, prd, self.max_ray_depth);
-    const auto colour = vec3f(r, g, b);
+    const auto colour = tracePath(self, ray, prd, self.max_ray_depth);
 
     final_colour += colour;
   }
@@ -191,6 +241,7 @@ inline __device__ void closestHit() {
   // in the same direction as the incident ray.
   const auto normal = getPrimitiveNormal(self);
   prd.hit_record.normal_at_hitpoint = (dot(rayDir, normal) < 0.f) ? normal : -normal;
+  prd.hit_record.normal_at_hitpoint = normalize(prd.hit_record.normal_at_hitpoint);
 
   prd.colour = 0.f;
   prd.ray_missed = false;
@@ -205,6 +256,12 @@ OPTIX_MISS_PROGRAM(miss)()
 
   auto &prd = owl::getPRD<PerRayData>();
   prd.colour = self.sky_colour;
+  prd.ray_missed = true;
+}
+
+OPTIX_MISS_PROGRAM(ScatterDiffuse)()
+{
+  auto &prd = getPRD<PerRayData>();
   prd.ray_missed = true;
 }
 

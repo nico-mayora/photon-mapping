@@ -33,6 +33,15 @@ inline __device__ owl::vec3f randomPointInUnitSphere(Random &random) {
   return owl::vec3f(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
 }
 
+inline __device__ void randomUnitVector(Random &random, owl::vec3f &vec) {
+    do {
+        vec.x = 2.f*random() - 1.f;
+        vec.y = 2.f*random() - 1.f;
+        vec.z = 2.f*random() - 1.f;
+    } while (dot(vec, vec) >= 1.f);
+    vec = normalize(vec);
+}
+
 inline __device__ owl::vec3f cosineSampleHemisphere(const owl::vec3f &normal, Random &random) {
   return normalize(normal + randomPointInUnitSphere(random) * (1 - EPS));
 }
