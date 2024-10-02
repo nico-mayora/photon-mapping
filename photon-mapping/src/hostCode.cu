@@ -53,7 +53,6 @@ void setupPointLightRayGenProgram(Program &program) {
           { "photons",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photons)},
           { "photonsCount",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photonsCount)},
           { "maxPhotons",OWL_INT,OWL_OFFSETOF(PointLightRGD,maxPhotons)},
-          { "dims",OWL_INT2,OWL_OFFSETOF(PointLightRGD,dims)},
           { "maxBounces",OWL_INT,OWL_OFFSETOF(PointLightRGD, maxDepth)},
           {"causticsMode", OWL_BOOL, OWL_OFFSETOF(PointLightRGD, causticsMode)},
           { "world",OWL_GROUP,OWL_OFFSETOF(PointLightRGD,world)},
@@ -71,9 +70,8 @@ void setupPointLightRayGenProgram(Program &program) {
   owlRayGenSet1i(program.rayGen,"maxBounces",program.maxDepth);
 }
 
-void setPointLightRayGenVariables(Program &program, const LightSource &light, owl::vec2i dims, bool causticsMode) {
+void runPointLightRayGen(Program &program, const LightSource &light, bool causticsMode) {
   owlRayGenSet1b(program.rayGen,"causticsMode",causticsMode);
-  owlRayGenSet2i(program.rayGen,"dims",reinterpret_cast<const owl2i&>(dims));
   owlRayGenSet3f(program.rayGen,"position",reinterpret_cast<const owl3f&>(light.pos));
   owlRayGenSet3f(program.rayGen,"color",reinterpret_cast<const owl3f&>(light.rgb));
   owlRayGenSet1f(program.rayGen,"intensity",light.power);
@@ -87,6 +85,11 @@ void setPointLightRayGenVariables(Program &program, const LightSource &light, ow
     owlRayGenSetBuffer(program.rayGen,"photonsCount",program.photonsCount);
     owlRayGenSet1i(program.rayGen,"maxPhotons",program.maxPhotons);
   }
+
+  const int initialPhotons = (int)(light.power * program.photonsPerWatt);
+
+  owlBuildSBT(program.owlContext);
+  owlRayGenLaunch2D(program.rayGen,initialPhotons,1);
 }
 
 void initPhotonBuffers(Program &program) {
@@ -101,9 +104,7 @@ void initPhotonBuffers(Program &program) {
 
 void runNormal(Program &program, const std::string &output_filename) {
   for (auto light : program.world->light_sources) {
-    setPointLightRayGenVariables(program, light, owl::vec2i (200, 200), false);
-    owlBuildSBT(program.owlContext);
-    owlRayGenLaunch2D(program.rayGen,1,program.maxPhotons);
+    runPointLightRayGen(program, light, false);
   }
 
   LOG("done with launch, writing photons ...")
@@ -115,9 +116,7 @@ void runNormal(Program &program, const std::string &output_filename) {
 
 void runCaustics(Program &program, const std::string &output_filename) {
   for (auto light : program.world->light_sources) {
-    setPointLightRayGenVariables(program, light, owl::vec2i (200, 200), true);
-    owlBuildSBT(program.owlContext);
-    owlRayGenLaunch2D(program.rayGen,1,program.maxCausticsPhotons);
+    runPointLightRayGen(program, light, true);
   }
 
   LOG("done with launch, writing caustics photons ...")
@@ -146,18 +145,10 @@ int main(int ac, char **av)
   program.maxPhotons = cfg["photon-mapper"]["max_photons"].as_integer();
   program.maxCausticsPhotons = cfg["photon-mapper"]["max_caustics_photons"].as_integer();
   program.maxDepth = cfg["photon-mapper"]["max_depth"].as_integer();
-
+  program.photonsPerWatt = cfg["photon-mapper"]["photons_per_watt"].as_integer();
 
   auto *ai_importer = new Assimp::Importer;
   program.world =  assets::import_scene(ai_importer, model_path);
-
-  double totalPower = 0;
-  for (const auto & light : program.world->light_sources) {
-    totalPower += light.power;
-  }
-  for (auto & light : program.world->light_sources) {
-    light.num_photons = static_cast<int>((light.power / totalPower) * program.maxPhotons);
-  }
 
   LOG_OK("Loaded world.")
 
