@@ -127,7 +127,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     optixTrace(self.world,
       prd.hit_record.hitpoint,
       random_direction,
-      EPS,
+      3*EPS,
       INFTY,
       0.f,
       OptixVisibilityMask(255),
@@ -161,14 +161,14 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
 
 // WIP
 inline __device__
-vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
+vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, const int depth) {
   vec3f colour = 0.f;
-  depth = 1; //DEBUG
+  vec3f attenuation = 1.f;
   for (int d = 0; d < depth; d++) {
     // Diffuse terms
     const auto [r, g, b] = ray_colour(self, ray, prd);
-    colour += vec3f(r, g, b);
-  /*
+    colour += vec3f(r, g, b) * attenuation;
+
     bool absorbed;
     float coefficient;
     auto out_dir = reflect_or_refract_ray(
@@ -177,8 +177,11 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, int depth) {
       absorbed, coefficient
     );
 
+    if (absorbed) break;
+    attenuation *= coefficient;
+
+
     ray = Ray(prd.hit_record.hitpoint, out_dir, EPS, INFTY);
-    */
   }
 
   return colour;
