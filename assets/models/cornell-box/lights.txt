@@ -1,3 +1,4 @@
 # Format:
 # posx posy posz colourr colourg colourb power
-0 35 0 1 1 1 20.0
+5 35 -10 1 1 1 10.0
+-5 35 10 1 1 1 10.0

@@ -1,0 +1,20 @@
+# If a material is not listed, a white diffuse material will be assigned.
+# diffuse + specular + transmission must be equal to 1.
+# Format:
+# material_name albedo_r albedo_g albedo_b diffuse specular transmission ior
+
+# Objects
+glass           1.0 0.2 0.9 0.5 0.5 0.0 1.0
+dragon          1.0 1.0 1.0 0.0 0.1 0.9 1.4
+
+# Box
+floor.001      0.5 0.5 0.5 0.8 0.2 0.0 1.0
+roof.001       0.5 0.5 0.5 1.0 0.0 0.0 1.0
+left_wall.001  0.0 0.0 1.0 1.0 0.0 0.0 1.0
+
+right_wall     1.0 1.0 1.0 1.0 0.0 0.0 1.0
+right_wall.001 1.0 1.0 1.0 1.0 0.0 0.0 1.0
+right_wall.002 1.0 1.0 1.0 1.0 0.0 0.0 1.0
+right_wall.003 1.0 1.0 1.0 1.0 0.0 0.0 1.0
+
+back_wall.001  0.0 1.0 0.0 1.0 0.0 0.0 1.0

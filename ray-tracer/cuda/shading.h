@@ -6,7 +6,7 @@
 
 #define K_NEAREST_NEIGHBOURS 50
 #define K_MAX_DISTANCE 100
-#define CONE_FILTER_C 1.3f
+#define CONE_FILTER_C 1.1f
 
 inline __device__
 cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {

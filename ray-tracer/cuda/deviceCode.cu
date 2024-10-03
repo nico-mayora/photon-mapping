@@ -7,12 +7,12 @@
 #include "owl/RayGen.h"
 #include <cukd/knn.h>
 
-#define DIRECT_LIGHT_FACTOR 0.1f
-#define CAUSTICS_FACTOR 0.05f
-#define DIFFUSE_FACTOR 0.2f
+#define DIRECT_LIGHT_FACTOR 0.05f
+#define CAUSTICS_FACTOR 0.00f
+#define DIFFUSE_FACTOR 0.0f
 #define SPECULAR_FACTOR 1.f
 
-#define NUM_DIFFUSE_SAMPLES 25
+#define NUM_DIFFUSE_SAMPLES 50
 
 using namespace owl;
 
@@ -92,7 +92,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     direct_illumination += light_visibility
       * static_cast<float>(current_light.power)
       * light_dot_norm
-      * (1.f / distance_to_light * distance_to_light)
+      * (1.f / (distance_to_light * distance_to_light))
       * (diffuse_brdf + specular_brdf)
       * current_light.rgb;
 
@@ -159,7 +159,6 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
   return test;
 }
 
-// WIP
 inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, const int depth) {
   vec3f colour = 0.f;
@@ -178,8 +177,7 @@ vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, const int dep
     );
 
     if (absorbed) break;
-    attenuation *= coefficient;
-
+    attenuation *= coefficient * prd.hit_record.material.albedo;
 
     ray = Ray(prd.hit_record.hitpoint, out_dir, EPS, INFTY);
   }
