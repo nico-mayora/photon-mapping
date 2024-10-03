@@ -7,9 +7,9 @@
 #include "owl/RayGen.h"
 #include <cukd/knn.h>
 
-#define DIRECT_LIGHT_FACTOR 00.f
+#define DIRECT_LIGHT_FACTOR 0.8f
 #define CAUSTICS_FACTOR 0.08f
-#define DIFFUSE_FACTOR 0.0f
+#define DIFFUSE_FACTOR 0.12f
 #define SPECULAR_FACTOR 1.f
 
 #define NUM_DIFFUSE_SAMPLES 20
@@ -165,7 +165,7 @@ inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, const int depth) {
   vec3f colour = 0.f;
   vec3f attenuation = 1.f;
-  for (int d = 0; d < 1; d++) {
+  for (int d = 0; d < depth; d++) {
     // Diffuse terms
     const auto [r, g, b] = ray_colour(self, ray, prd);
     colour += vec3f(r, g, b) * attenuation;
