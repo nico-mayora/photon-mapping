@@ -86,7 +86,7 @@ void runPointLightRayGen(Program &program, const LightSource &light, bool causti
     owlRayGenSet1i(program.rayGen,"maxPhotons",program.maxPhotons);
   }
 
-  const int initialPhotons = (int)(light.power * program.photonsPerWatt);
+  const int initialPhotons = light.power * (causticsMode ? program.causticsPhotonsPerWatt : program.photonsPerWatt);
 
   owlBuildSBT(program.owlContext);
   owlRayGenLaunch2D(program.rayGen,initialPhotons,1);
@@ -102,7 +102,19 @@ void initPhotonBuffers(Program &program) {
   owlBufferClear(program.causticsPhotonsCount);
 }
 
+void computePhotonsPerWatt(Program &program) {
+  double totalWatts = 0;
+  for (auto light : program.world->light_sources) {
+    totalWatts += light.power;
+  }
+
+  program.photonsPerWatt = program.maxPhotons / totalWatts;
+  program.causticsPhotonsPerWatt = program.maxCausticsPhotons / totalWatts;
+}
+
 void runNormal(Program &program, const std::string &output_filename) {
+  LOG("launching normal photons ...")
+
   for (auto light : program.world->light_sources) {
     runPointLightRayGen(program, light, false);
   }
@@ -110,11 +122,14 @@ void runNormal(Program &program, const std::string &output_filename) {
   LOG("done with launch, writing photons ...")
   auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.photonsBuffer, 0));
   auto count = *(int*)owlBufferGetPointer(program.photonsCount, 0);
+  count = std::min(count, program.maxPhotons);
 
   writeAlivePhotons(fb, count, output_filename);
 }
 
 void runCaustics(Program &program, const std::string &output_filename) {
+  LOG("launching caustics photons ...")
+
   for (auto light : program.world->light_sources) {
     runPointLightRayGen(program, light, true);
   }
@@ -122,6 +137,7 @@ void runCaustics(Program &program, const std::string &output_filename) {
   LOG("done with launch, writing caustics photons ...")
   auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.causticsPhotonsBuffer, 0));
   auto count = *(int*)owlBufferGetPointer(program.causticsPhotonsCount, 0);
+  count = std::min(count, program.maxCausticsPhotons);
 
   writeAlivePhotons(fb, count, output_filename);
 }
@@ -145,8 +161,6 @@ int main(int ac, char **av)
   program.maxPhotons = cfg["photon-mapper"]["max_photons"].as_integer();
   program.maxCausticsPhotons = cfg["photon-mapper"]["max_caustics_photons"].as_integer();
   program.maxDepth = cfg["photon-mapper"]["max_depth"].as_integer();
-  program.photonsPerWatt = cfg["photon-mapper"]["photons_per_watt"].as_integer();
-
 
   auto *ai_importer = new Assimp::Importer;
   program.world =  assets::import_scene(ai_importer, model_path);
@@ -158,6 +172,7 @@ int main(int ac, char **av)
   owlGeomTypeSetClosestHit(program.geometryData.trianglesGeomType, 0, program.owlModule,"triangleMeshClosestHit");
   owlMissProgCreate(program.owlContext, program.owlModule, "miss", 0, nullptr, -1);
 
+  computePhotonsPerWatt(program);
   initPhotonBuffers(program);
 
   setupPointLightRayGenProgram(program);

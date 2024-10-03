@@ -25,4 +25,5 @@ struct Program {
     int maxPhotons;
     int maxCausticsPhotons;
     int photonsPerWatt;
+    int causticsPhotonsPerWatt;
 };

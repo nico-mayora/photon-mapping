@@ -67,7 +67,7 @@ void loadPhotons(Program &program, const std::string& filename) {
       photon->pixel.y = -1;
     }else {
       photon->pixel.x = static_cast<int>((screenPos.x / screenPos.w + 1.f) * 0.5f * program.frameBufferSize.x);
-      photon->pixel.y = static_cast<int>((screenPos.y / screenPos.w + 1.f) * 0.5f * program.frameBufferSize.y);
+      photon->pixel.y = program.frameBufferSize.y -  static_cast<int>((screenPos.y / screenPos.w + 1.f) * 0.5f * program.frameBufferSize.y);
     }
   }
 

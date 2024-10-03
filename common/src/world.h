@@ -10,28 +10,6 @@ enum LightType {
     SQUARE_LIGHT,
 };
 
-struct PointLight {
-    owl::vec3f position;
-    double power;
-    owl::vec3f color;
-};
-
-struct SpotLight {
-    owl::vec3f position;
-    owl::vec3f direction;
-    double power;
-    owl::vec3f color;
-    double angle;
-};
-
-struct Light {
-    enum {POINT, SPOT} type;
-    union {
-        PointLight pointLight;
-        SpotLight spotLight;
-    };
-};
-
 struct LightSource {
     LightType source_type;
     owl::vec3f pos;
