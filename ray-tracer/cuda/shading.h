@@ -105,10 +105,10 @@ owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, P
          if (photonID < 0 || photonID > num_photons) continue;
          auto photon = photons[photonID];
 
-         auto w_prime = normalize(vec3f(photon.dir));
-         if (dot(w_prime, normal) < 0.f) w_prime = -w_prime;
-         const auto w_prime_dot_n = dot(w_prime, normal);
-         const auto photon_power = photon.power * ((w_prime_dot_n < EPS) ? w_prime_dot_n : 1.f);
+         // auto w_prime = normalize(vec3f(photon.dir));
+         // if (dot(w_prime, normal) < 0.f) w_prime = -w_prime;
+         // const auto w_prime_dot_n = dot(w_prime, normal);
+         const auto photon_power = photon.power; //* ((w_prime_dot_n < EPS) ? w_prime_dot_n : 1.f);
          const auto photon_distance = norm(vec3f(photon.pos) - hitpoint);
          const auto photon_weight = 1 - (photon_distance / sqrtf(query_area_radius_squared) * CONE_FILTER_C);
 

@@ -7,12 +7,12 @@
 #include "owl/RayGen.h"
 #include <cukd/knn.h>
 
-#define DIRECT_LIGHT_FACTOR 0.05f
-#define CAUSTICS_FACTOR 0.00f
+#define DIRECT_LIGHT_FACTOR 00.f
+#define CAUSTICS_FACTOR 0.08f
 #define DIFFUSE_FACTOR 0.0f
 #define SPECULAR_FACTOR 1.f
 
-#define NUM_DIFFUSE_SAMPLES 50
+#define NUM_DIFFUSE_SAMPLES 20
 
 using namespace owl;
 
@@ -62,7 +62,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     light_dir = normalize(light_dir);
 
     auto light_dot_norm = dot(light_dir, prd.hit_record.normal_at_hitpoint);
-    //if (light_dot_norm < 0.f) continue; // light hits "behind" triangle
+    if (light_dot_norm < 0.f) continue; // light hits "behind" triangle
 
     vec3f light_visibility = 0.f;
     uint32_t u0, u1;
@@ -99,6 +99,8 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
   }
 
   auto direct_term =  albedo * direct_illumination;
+
+  MyColour final_colour;
 
   // Caustics
   vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, prd.hit_record.normal_at_hitpoint, self.causticPhotons,
@@ -151,19 +153,19 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
   }
   diffuse_term /= (float)NUM_DIFFUSE_SAMPLES;
 
-  MyColour test;
-  test.r = DIFFUSE_FACTOR*diffuse_term.x + CAUSTICS_FACTOR*caustics_term.x + DIRECT_LIGHT_FACTOR*direct_term.x;
-  test.g = DIFFUSE_FACTOR*diffuse_term.y + CAUSTICS_FACTOR*caustics_term.y + DIRECT_LIGHT_FACTOR*direct_term.y;
-  test.b = DIFFUSE_FACTOR*diffuse_term.z + CAUSTICS_FACTOR*caustics_term.z + DIRECT_LIGHT_FACTOR*direct_term.z;
+  //MyColour final_colour;
+  final_colour.r = DIFFUSE_FACTOR*diffuse_term.x + CAUSTICS_FACTOR*caustics_term.x + DIRECT_LIGHT_FACTOR*direct_term.x;
+  final_colour.g = DIFFUSE_FACTOR*diffuse_term.y + CAUSTICS_FACTOR*caustics_term.y + DIRECT_LIGHT_FACTOR*direct_term.y;
+  final_colour.b = DIFFUSE_FACTOR*diffuse_term.z + CAUSTICS_FACTOR*caustics_term.z + DIRECT_LIGHT_FACTOR*direct_term.z;
 
-  return test;
+  return final_colour;
 }
 
 inline __device__
 vec3f tracePath(const RayGenData &self, Ray &ray, PerRayData &prd, const int depth) {
   vec3f colour = 0.f;
   vec3f attenuation = 1.f;
-  for (int d = 0; d < depth; d++) {
+  for (int d = 0; d < 1; d++) {
     // Diffuse terms
     const auto [r, g, b] = ray_colour(self, ray, prd);
     colour += vec3f(r, g, b) * attenuation;
