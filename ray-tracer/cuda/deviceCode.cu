@@ -9,7 +9,7 @@
 
 #define DIRECT_LIGHT_FACTOR 0.8f
 #define CAUSTICS_FACTOR 0.08f
-#define DIFFUSE_FACTOR 0.12f
+#define DIFFUSE_FACTOR 0.2f
 #define SPECULAR_FACTOR 1.f
 
 #define NUM_DIFFUSE_SAMPLES 20
@@ -152,6 +152,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     }
   }
   diffuse_term /= (float)NUM_DIFFUSE_SAMPLES;
+  diffuse_term *= albedo;
 
   //MyColour final_colour;
   final_colour.r = DIFFUSE_FACTOR*diffuse_term.x + CAUSTICS_FACTOR*caustics_term.x + DIRECT_LIGHT_FACTOR*direct_term.x;
