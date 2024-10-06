@@ -82,9 +82,17 @@ void loadPhotons(Program &program, const std::string& globalPhotonsFilename, con
     program.globalPhotons[nonCausticPhotonsNum+k].power = CAUSTICS_PHOTON_POWER;
   }
 
+  cukd::box_t<float3> *globalWorldBounds = NULL;
+  CUKD_CUDA_CALL(MallocManaged((void **)&globalWorldBounds,sizeof(*globalWorldBounds)));
+
+  cukd::box_t<float3> *causticWorldBounds = NULL;
+  CUKD_CUDA_CALL(MallocManaged((void **)&causticWorldBounds,sizeof(*causticWorldBounds)));
+
+  program.globalPhotonsBounds = globalWorldBounds;
+  program.causticPhotonsBounds = causticWorldBounds;
   auto startKDT = std::chrono::high_resolution_clock::now();
-  cukd::buildTree<Photon,Photon_traits>(program.globalPhotons,program.numGlobalPhotons);
-  cukd::buildTree<Photon,Photon_traits>(program.causticPhotons,program.numCausticPhotons);
+  cukd::buildTree<Photon,Photon_traits>(program.globalPhotons,program.numGlobalPhotons, program.globalPhotonsBounds);
+  cukd::buildTree<Photon,Photon_traits>(program.causticPhotons,program.numCausticPhotons, program.causticPhotonsBounds);
   auto endKDT = std::chrono::high_resolution_clock::now();
   auto durationKDT = std::chrono::duration_cast<std::chrono::milliseconds>(endKDT - startKDT);
   printf("Time taken to build KD-Tree: %d ms\n", durationKDT.count());
@@ -135,8 +143,10 @@ void setupRaygenProgram(Program &program) {
           { "lights",        OWL_BUFPTR,      OWL_OFFSETOF(RayGenData,lights)},
           { "numLights",     OWL_INT,         OWL_OFFSETOF(RayGenData,numLights)},
           { "globalPhotons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,globalPhotons)},
+          { "globalPhotonsBounds", OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,globalPhotonsBounds)},
           { "numGlobalPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numGlobalPhotons)},
           { "causticPhotons",      OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,causticPhotons)},
+          { "causticPhotonsBounds", OWL_RAW_POINTER,  OWL_OFFSETOF(RayGenData,causticPhotonsBounds)},
           { "numCausticPhotons",   OWL_INT,          OWL_OFFSETOF(RayGenData,numCausticPhotons)},
           { "samples_per_pixel", OWL_INT,     OWL_OFFSETOF(RayGenData,samples_per_pixel)},
           { "max_ray_depth", OWL_INT,         OWL_OFFSETOF(RayGenData,max_ray_depth)},
@@ -158,8 +168,10 @@ void setupRaygenProgram(Program &program) {
   owlRayGenSetBuffer(program.rayGen,"lights",       program.lightsBuffer);
   owlRayGenSet1i    (program.rayGen,"numLights",    program.numLights);
   owlRayGenSetPointer(program.rayGen,"globalPhotons",     program.globalPhotons);
+  owlRayGenSetPointer(program.rayGen,"globalPhotonsBounds",program.globalPhotonsBounds);
   owlRayGenSet1i    (program.rayGen,"numGlobalPhotons",   program.numGlobalPhotons);
   owlRayGenSetPointer(program.rayGen,"causticPhotons",    program.causticPhotons);
+  owlRayGenSetPointer(program.rayGen,"causticPhotonsBounds",program.causticPhotonsBounds);
   owlRayGenSet1i    (program.rayGen,"numCausticPhotons",  program.numCausticPhotons);
   owlRayGenSet1i    (program.rayGen,"samples_per_pixel", program.samplesPerPixel);
   owlRayGenSet1i    (program.rayGen,"max_ray_depth", program.maxDepth);

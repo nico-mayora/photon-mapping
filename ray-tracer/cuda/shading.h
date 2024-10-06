@@ -9,11 +9,11 @@
 #define CONE_FILTER_C 1.1f
 
 inline __device__
-cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
+cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, cukd::box_t<float3>* worldBounds, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
     cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> closest(K_MAX_DISTANCE);
     sqrDistOfFurthestOneInClosest = cukd::stackBased::knn<
         cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS>,Photon, Photon_traits
-    >(closest,queryPoint,photons,numPoints);
+    >(closest,queryPoint,photons,numPoints); // add worldBounds
  return closest;
 }
 
@@ -91,11 +91,11 @@ inline __device__ float specularBrdf(const float specular_coefficient,
 }
 
 inline __device__
-owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, Photon* photons, const int num_photons,const float diffuse_brdf) {
+owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, Photon* photons, const int num_photons,const float diffuse_brdf, cukd::box_t<float3>* worldBounds) {
      using namespace owl;
      float query_area_radius_squared = 0.f;
      auto k_nearest = KNearestPhotons(
-       hitpoint, photons, num_photons, query_area_radius_squared
+       hitpoint, worldBounds, photons, num_photons, query_area_radius_squared
      );
 
      auto in_flux = vec3f(0.f);

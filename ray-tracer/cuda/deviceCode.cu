@@ -104,7 +104,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
 
   // Caustics
   vec3f caustics_term = gatherPhotons(prd.hit_record.hitpoint, prd.hit_record.normal_at_hitpoint, self.causticPhotons,
-                                      self.numCausticPhotons, diffuse_brdf);
+                                      self.numCausticPhotons, diffuse_brdf, self.causticPhotonsBounds);
 
   // Diffuse term
   vec3f diffuse_term = 0.f;
@@ -146,7 +146,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
       float scattered_diffuse_brdf = diffuse_prd.hit_record.material.diffuse / PI;
 
       diffuse_colour = gatherPhotons(diffuse_prd.hit_record.hitpoint, diffuse_prd.hit_record.normal_at_hitpoint,
-                                     self.globalPhotons, self.numGlobalPhotons, scattered_diffuse_brdf);
+                                     self.globalPhotons, self.numGlobalPhotons, scattered_diffuse_brdf, self.globalPhotonsBounds);
 
       diffuse_term += diffuse_colour * diffuse_prd.hit_record.material.albedo;
     }

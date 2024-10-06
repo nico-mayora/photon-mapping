@@ -22,8 +22,7 @@ struct Photon {
 
 struct Photon_traits : public cukd::default_data_traits<float3> {
     using point_t = float3;
-    // set to false because "optimized" KD-tree functions are not working
-    enum { has_explicit_dim = false };
+    enum { has_explicit_dim = true };
 
     static inline __device__ __host__
     float3 get_point(const Photon &data) { return data.pos; }

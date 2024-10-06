@@ -17,8 +17,10 @@ struct RayGenData
     int numLights;
 
     Photon* globalPhotons;
+    cukd::box_t<float3>* globalPhotonsBounds;
     int numGlobalPhotons;
     Photon* causticPhotons;
+    cukd::box_t<float3>* causticPhotonsBounds;
     int numCausticPhotons;
 
     int samples_per_pixel;

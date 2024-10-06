@@ -5,7 +5,7 @@
 #include "photon.h"
 #include "../../common/src/world.h"
 #include "owl/common/math/vec.h"
-#include "glm/glm.hpp"
+#include <cukd/box.h>
 
 struct Program {
     OWLContext owlContext;
@@ -18,8 +18,10 @@ struct Program {
     GeometryData geometryData;
 
     Photon* globalPhotons;
+    cukd::box_t<float3>* globalPhotonsBounds;
     int numGlobalPhotons;
     Photon* causticPhotons;
+    cukd::box_t<float3>* causticPhotonsBounds;
     int numCausticPhotons;
 
     OWLBuffer lightsBuffer;
