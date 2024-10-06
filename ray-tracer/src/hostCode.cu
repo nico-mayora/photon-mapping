@@ -16,6 +16,7 @@
 #include "../../common/src/common.h"
 #include <cukd/builder.h>
 #include <cukd/knn.h>
+#include <chrono>
 
 #define PHOTON_POWER (1.f)
 #define CAUSTICS_PHOTON_POWER (float(PHOTON_POWER) * 0.5f)
@@ -81,8 +82,12 @@ void loadPhotons(Program &program, const std::string& globalPhotonsFilename, con
     program.globalPhotons[nonCausticPhotonsNum+k].power = CAUSTICS_PHOTON_POWER;
   }
 
+  auto startKDT = std::chrono::high_resolution_clock::now();
   cukd::buildTree<Photon,Photon_traits>(program.globalPhotons,program.numGlobalPhotons);
   cukd::buildTree<Photon,Photon_traits>(program.causticPhotons,program.numCausticPhotons);
+  auto endKDT = std::chrono::high_resolution_clock::now();
+  auto durationKDT = std::chrono::duration_cast<std::chrono::milliseconds>(endKDT - startKDT);
+  printf("Time taken to build KD-Tree: %d ms\n", durationKDT.count());
 }
 void setupCamera(Program &program, const owl::vec3f &lookFrom, const owl::vec3f &lookAt, const owl::vec3f &lookUp, float fovy) {
   const float aspect = program.frameBufferSize.x / static_cast<float>(program.frameBufferSize.y);
@@ -211,10 +216,13 @@ int main(int ac, char **av)
   owlBuildSBT(program.owlContext);
 
   LOG_OK("Launching...");
-
+  auto startRT = std::chrono::high_resolution_clock::now();
   owlRayGenLaunch2D(program.rayGen, program.frameBufferSize.x, program.frameBufferSize.y);
-
+  auto endRT = std::chrono::high_resolution_clock::now();
   LOG_OK("Saving image...");
+
+  auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endRT - startRT);
+  printf("Time taken to render: %d ms\n", duration.count());
 
   auto *fb = static_cast<const uint32_t*>(owlBufferGetPointer(program.frameBuffer, 0));
   stbi_write_png(output_filename.c_str(),program.frameBufferSize.x,program.frameBufferSize.y,4,fb,program.frameBufferSize.x*sizeof(uint32_t));
