@@ -91,32 +91,33 @@ inline __device__ float specularBrdf(const float specular_coefficient,
 }
 
 inline __device__
-owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, Photon* photons, const int num_photons,const float diffuse_brdf, cukd::box_t<float3>* worldBounds) {
-     using namespace owl;
-     float query_area_radius_squared = 0.f;
-     auto k_nearest = KNearestPhotons(
-       hitpoint, worldBounds, photons, num_photons, query_area_radius_squared
-     );
+owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, Photon* photons, const int num_photons,
+                         const float diffuse_brdf, cukd::box_t<float3>* worldBounds) {
+  using namespace owl;
+  float query_area_radius_squared = 0.f;
+  const auto k_nearest = KNearestPhotons(
+    hitpoint, worldBounds, photons, num_photons, query_area_radius_squared
+  );
 
-     auto in_flux = vec3f(0.f);
-     #pragma unroll
-     for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
-         const auto photonID = k_nearest.get_pointID(p);
-         if (photonID < 0 || photonID > num_photons) continue;
-         auto photon = photons[photonID];
+  auto in_flux = vec3f(0.f);
+#pragma unroll
+  for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
+    const auto photonID = k_nearest.get_pointID(p);
+    if (photonID < 0 || photonID > num_photons) continue;
+    const auto photon = photons[photonID];
 
-         // auto w_prime = normalize(vec3f(photon.dir));
-         // if (dot(w_prime, normal) < 0.f) w_prime = -w_prime;
-         // const auto w_prime_dot_n = dot(w_prime, normal);
-         const auto photon_power = photon.power; //* ((w_prime_dot_n < EPS) ? w_prime_dot_n : 1.f);
-         const auto photon_distance = norm(vec3f(photon.pos) - hitpoint);
-         const auto photon_weight = 1 - (photon_distance / sqrtf(query_area_radius_squared) * CONE_FILTER_C);
+    // w_prime points to the photon's origin.
+    auto w_prime = -normalize(vec3f(photon.dir));
+    const auto w_prime_dot_n = dot(w_prime, normal);
+    if (w_prime_dot_n <= 0.f) break; // reject photons with opposite directions as the normal.
 
-         in_flux += diffuse_brdf
-           * photon_power * photon_weight
-           * vec3f(photon.color);
-     }
+    const auto photon_power = photon.power * w_prime_dot_n;
+    const auto photon_distance = norm(vec3f(photon.pos) - hitpoint);
+    const auto photon_weight = 1.f - (photon_distance / sqrtf(query_area_radius_squared) * CONE_FILTER_C);
 
-     return in_flux / ((1 - (2.f/3.f) * (1.f/CONE_FILTER_C)) * 2*PI*query_area_radius_squared);
- }
+    in_flux += diffuse_brdf
+      * photon_power * photon_weight * vec3f(photon.color);
+  }
 
+  return in_flux / ((1 - (2.f / 3.f) * (1.f / CONE_FILTER_C)) * 2 * PI * query_area_radius_squared);
+}

@@ -5,13 +5,8 @@
 #include "owl/owl.h"
 #include "mesh.h"
 
-enum LightType {
-    POINT_LIGHT,
-    SQUARE_LIGHT,
-};
 
 struct LightSource {
-    LightType source_type;
     owl::vec3f pos;
     double power;
     owl::vec3f rgb;
@@ -23,10 +18,6 @@ struct LightSource {
     int num_photons;
 };
 
-/* This holds all the state required for the path tracer to function.
- * As we use the STL, this is code in C++ land that needs a bit of
- * glue to transform to data that can be held in the GPU.
- */
 struct World {
     std::vector<LightSource> light_sources;
     std::vector<Mesh> meshes;

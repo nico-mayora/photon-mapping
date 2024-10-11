@@ -119,8 +119,6 @@ static std::vector<LightSource> extract_lights(std::string& path) {
     std::istringstream iss(line);
     LightSource light;
 
-    light.source_type = POINT_LIGHT;  // Assuming all lights are point lights
-
     if (!(iss >> light.pos.x >> light.pos.y >> light.pos.z >>
               light.rgb.x >> light.rgb.y >> light.rgb.z >>
               light.power)) {

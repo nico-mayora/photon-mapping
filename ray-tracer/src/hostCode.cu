@@ -119,8 +119,8 @@ void setupMissProgram(Program &program, const owl::vec3f &sky_color) {
   };
 
   auto missProg = owlMissProgCreate(program.owlContext,program.owlModule,"miss",sizeof(MissProgData),missProgVars,-1);
-  auto shadowMissProg = owlMissProgCreate(program.owlContext,program.owlModule,"shadow",0,nullptr,-1);
-  auto diffuseMissProg = owlMissProgCreate(program.owlContext,program.owlModule,"ScatterDiffuse",0,nullptr,-1);
+  owlMissProgCreate(program.owlContext,program.owlModule,"shadow",0,nullptr,-1);
+  owlMissProgCreate(program.owlContext,program.owlModule,"ScatterDiffuse",0,nullptr,-1);
 
   owlMissProgSet3f(missProg, "sky_color", reinterpret_cast<const owl3f&>(sky_color));
 }
