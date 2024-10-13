@@ -23,6 +23,5 @@ fb_size = [1920, 1080]
 
 [photon-mapper]
 max_depth = 10
-max_photons = 10_000_000
-max_caustics_photons = 10_000_000
-photons_per_watt = 1000000000000
+casted_diffuse_photons = 1_000
+casted_caustics_photons = 500

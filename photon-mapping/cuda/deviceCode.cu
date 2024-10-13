@@ -7,17 +7,13 @@
 
 using namespace owl;
 
-inline __device__ bool savePhoton(const PhotonMapperRGD &self, PhotonMapperPRD &prd) {
+inline __device__ void savePhoton(const PhotonMapperRGD &self, PhotonMapperPRD &prd) {
   int photonIndex = atomicAdd(self.photonsCount, 1);
-  if (photonIndex >= self.maxPhotons) {
-    return false;
-  }
 
   auto photon = &self.photons[photonIndex];
   photon->color = prd.color;
   photon->pos = prd.scattered.origin;
   photon->dir = prd.scattered.direction;
-  return true;
 }
 
 inline __device__ void updateScatteredRay(Ray &ray, PhotonMapperPRD &prd) {
@@ -30,13 +26,8 @@ inline __device__ void shootPhoton(const PhotonMapperRGD &self, Ray &ray, Photon
   for (int i = 0; i < self.maxDepth; i++) {
     owl::traceRay(self.world, ray, prd);
 
-    if (i > 0 && prd.event & (ABSORBED | SCATTER_DIFFUSE)) {
-      if(!savePhoton(self, prd)) {
-        break;
-      }
-    }
-
-    if (prd.event & (SCATTER_DIFFUSE | SCATTER_SPECULAR)) {
+    if (prd.event == SCATTER_DIFFUSE) {
+      if (i > 0) savePhoton(self, prd);
       updateScatteredRay(ray, prd);
     } else {
       break;
@@ -48,17 +39,11 @@ inline __device__ void shootCausticsPhoton(const PhotonMapperRGD &self, Ray &ray
   for (int i = 0; i < self.maxDepth; i++) {
     owl::traceRay(self.world, ray, prd);
 
-    if(i == 0 && prd.event == SCATTER_DIFFUSE) {
-      break;
+    if (i > 0 && prd.event == SCATTER_DIFFUSE) {
+      savePhoton(self, prd);
     }
 
-    if (i > 0 && prd.event & (ABSORBED | SCATTER_DIFFUSE)) {
-      if(!savePhoton(self, prd)) {
-        break;
-      }
-    }
-
-    if (prd.event & (SCATTER_DIFFUSE | SCATTER_SPECULAR | SCATTER_REFRACT)) {
+    if (prd.event & (SCATTER_SPECULAR | SCATTER_REFRACT)) {
       updateScatteredRay(ray, prd);
     } else {
       break;
@@ -136,7 +121,7 @@ OPTIX_CLOSEST_HIT_PROGRAM(triangleMeshClosestHit)(){
   const float randomProb = prd.random();
   if (randomProb < diffuseProb) {
     scatterDiffuse(prd, self);
-  } else if (randomProb < diffuseProb + specularProb) {
+  } else if (randomProb < specularProb) {
     scatterSpecular(prd, self);
   } else if (randomProb < transmissionProb) {
     scatterRefract(prd, self);

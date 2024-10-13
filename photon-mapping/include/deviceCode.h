@@ -9,7 +9,6 @@ struct PhotonMapperRGD
 {
     Photon *photons;
     int *photonsCount;
-    int maxPhotons;
     OptixTraversableHandle world;
     int maxDepth;
     bool causticsMode;
