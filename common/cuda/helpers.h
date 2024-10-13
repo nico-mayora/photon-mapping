@@ -13,7 +13,7 @@ inline __device__ owl::vec3f clampvec(owl::vec3f v, float f) {
 }
 
 inline __device__ bool nearZero(const owl::vec3f& v) {
-    return v.x < EPS && v.y < EPS && v.z < EPS;
+    return fabs(v.x) < EPS && fabs(v.y) < EPS && fabs(v.z) < EPS;
 }
 
 inline __device__ bool isZero(const owl::vec3f& v) {
@@ -68,9 +68,9 @@ inline __device__ owl::vec3f refract(const owl::vec3f &incoming, const owl::vec3
 
     if (cosPhi >= 0) {
       return mu * incoming + (mu * cosTheta - sqrtf(cosPhi)) * normal;
-    } else {
-      return reflect(incoming, normal);
     }
+
+    return reflect(incoming, normal);
 }
 
 inline __device__ owl::vec3f getPrimitiveNormal(const TrianglesGeomData& self) {

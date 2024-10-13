@@ -6,7 +6,7 @@
 
 #define K_NEAREST_NEIGHBOURS 50
 #define K_MAX_DISTANCE 100
-#define CONE_FILTER_C 1.1f
+#define CONE_FILTER_C 1.2f
 
 inline __device__
 cukd::HeapCandidateList<K_NEAREST_NEIGHBOURS> KNearestPhotons(float3 queryPoint, cukd::box_t<float3>* worldBounds, Photon* photons, int numPoints, float& sqrDistOfFurthestOneInClosest) {
@@ -99,6 +99,9 @@ owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, P
     hitpoint, worldBounds, photons, num_photons, query_area_radius_squared
   );
 
+    if (nearZero(normal))
+        printf("nml %f %f %f\n", normal.x, normal.y, normal.z);
+
   auto in_flux = vec3f(0.f);
 #pragma unroll
   for (int p = 0; p < K_NEAREST_NEIGHBOURS; p++) {
@@ -106,8 +109,8 @@ owl::vec3f gatherPhotons(const owl::vec3f& hitpoint, const owl::vec3f& normal, P
     if (photonID < 0 || photonID > num_photons) continue;
     const auto photon = photons[photonID];
 
-    // w_prime points to the photon's origin.
-    auto w_prime = -normalize(vec3f(photon.dir));
+    //w_prime points to the photon's origin.
+    auto w_prime = normalize(vec3f(photon.dir));
     const auto w_prime_dot_n = dot(w_prime, normal);
     if (w_prime_dot_n <= 0.f) break; // reject photons with opposite directions as the normal.
 

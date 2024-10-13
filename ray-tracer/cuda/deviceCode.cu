@@ -7,18 +7,17 @@
 #include "owl/RayGen.h"
 #include <cukd/knn.h>
 
-#define DIRECT_LIGHT_FACTOR 0.8f
-#define CAUSTICS_FACTOR 0.08f
-#define DIFFUSE_FACTOR 0.2f
+#define DIRECT_LIGHT_FACTOR 1.0f
+#define CAUSTICS_FACTOR 0.003f
+#define DIFFUSE_FACTOR 0.005f
 #define SPECULAR_FACTOR 1.f
 
-#define NUM_DIFFUSE_SAMPLES 20
+#define NUM_DIFFUSE_SAMPLES 8
 
 using namespace owl;
 
 // Work-around to adding up vec3f throwing a CUDA runtime error.
-struct MyColour
-{
+struct MyColour {
   float r, g, b;
 };
 
@@ -121,7 +120,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     random_direction = normalize(random_direction);
 
     PerRayData diffuse_prd;
-    //diffuse_prd.random.init(prd.random(), prd.random());
+    diffuse_prd.random.init(prd.random(), prd.random());
     diffuse_prd.ray_missed = false;
     uint32_t d0, d1;
     packPointer(&diffuse_prd, d0, d1);
@@ -129,7 +128,7 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     optixTrace(self.world,
       prd.hit_record.hitpoint,
       random_direction,
-      3*EPS,
+      EPS * 2,
       INFTY,
       0.f,
       OptixVisibilityMask(255),
@@ -141,20 +140,19 @@ MyColour ray_colour(const RayGenData &self, Ray &ray, PerRayData &prd) {
     );
 
     vec3f diffuse_colour = 0.f;
-    if (diffuse_prd.hit_record.material.diffuse > 0.f)
-    {
+    if (diffuse_prd.hit_record.material.diffuse > 0.f) {
       float scattered_diffuse_brdf = diffuse_prd.hit_record.material.diffuse / PI;
 
       diffuse_colour = gatherPhotons(diffuse_prd.hit_record.hitpoint, diffuse_prd.hit_record.normal_at_hitpoint,
-                                     self.globalPhotons, self.numGlobalPhotons, scattered_diffuse_brdf, self.globalPhotonsBounds);
+                                     self.globalPhotons, self.numGlobalPhotons, scattered_diffuse_brdf,
+                                     self.globalPhotonsBounds);
 
       diffuse_term += diffuse_colour * diffuse_prd.hit_record.material.albedo;
     }
   }
-  diffuse_term /= (float)NUM_DIFFUSE_SAMPLES;
+  diffuse_term /= static_cast<float>(NUM_DIFFUSE_SAMPLES);
   diffuse_term *= albedo;
 
-  //MyColour final_colour;
   final_colour.r = DIFFUSE_FACTOR*diffuse_term.x + CAUSTICS_FACTOR*caustics_term.x + DIRECT_LIGHT_FACTOR*direct_term.x;
   final_colour.g = DIFFUSE_FACTOR*diffuse_term.y + CAUSTICS_FACTOR*caustics_term.y + DIRECT_LIGHT_FACTOR*direct_term.y;
   final_colour.b = DIFFUSE_FACTOR*diffuse_term.z + CAUSTICS_FACTOR*caustics_term.z + DIRECT_LIGHT_FACTOR*direct_term.z;

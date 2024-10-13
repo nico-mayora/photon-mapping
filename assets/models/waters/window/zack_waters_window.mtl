@@ -1,0 +1,10 @@
+# material_name albedo_r albedo_g albedo_b diffuse specular transmission ior
+ball       1.0 1.0 0.0 1.0 0.0 0.0 1.0
+
+# Box
+floor      0.5 0.5 0.5 1.0 0.0 0.0 1.0
+ceiling    0.5 0.5 0.5 1.0 0.0 0.0 1.0
+back_wall  0.5 0.5 0.5 1.0 0.0 0.0 1.0
+left_wall  1.0 0.2 0.2 1.0 0.0 0.0 1.0
+right_wall 0.2 1.0 0.2 1.0 0.0 0.0 1.0
+window     1.0 1.0 1.0 1.0 0.0 0.0 1.0

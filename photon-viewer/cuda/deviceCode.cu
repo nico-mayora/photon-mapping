@@ -16,7 +16,7 @@ OPTIX_RAYGEN_PROGRAM(photonViewerRayGen)()
   if(photon.pixel.x < 0 || photon.pixel.x >= self.frameBufferSize.x ||
      photon.pixel.y < 0 || photon.pixel.y >= self.frameBufferSize.y)
   {
-    printf("x: %d, y: %d\n", photon.pixel.x, photon.pixel.y);
+    //printf("x: %d, y: %d\n", photon.pixel.x, photon.pixel.y);
     return;
   }
 
