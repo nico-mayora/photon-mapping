@@ -52,8 +52,7 @@ void setupPointLightRayGenProgram(Program &program) {
   OWLVarDecl rayGenVars[] = {
           { "photons",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photons)},
           { "photonsCount",OWL_BUFPTR,OWL_OFFSETOF(PointLightRGD,photonsCount)},
-          { "maxPhotons",OWL_INT,OWL_OFFSETOF(PointLightRGD,maxPhotons)},
-          { "maxBounces",OWL_INT,OWL_OFFSETOF(PointLightRGD, maxDepth)},
+          { "maxDepth",OWL_INT,OWL_OFFSETOF(PointLightRGD, maxDepth)},
           {"causticsMode", OWL_BOOL, OWL_OFFSETOF(PointLightRGD, causticsMode)},
           { "world",OWL_GROUP,OWL_OFFSETOF(PointLightRGD,world)},
           { "position",OWL_FLOAT3,OWL_OFFSETOF(PointLightRGD,position)},
@@ -67,7 +66,7 @@ void setupPointLightRayGenProgram(Program &program) {
                                    rayGenVars,-1);
 
   owlRayGenSetGroup(program.rayGen,"world",program.geometryData.worldGroup);
-  owlRayGenSet1i(program.rayGen,"maxBounces",program.maxDepth);
+  owlRayGenSet1i(program.rayGen,"maxDepth",program.maxDepth);
 }
 
 void runPointLightRayGen(Program &program, const LightSource &light, bool causticsMode) {
@@ -79,11 +78,9 @@ void runPointLightRayGen(Program &program, const LightSource &light, bool causti
   if (causticsMode) {
     owlRayGenSetBuffer(program.rayGen,"photons",program.causticsPhotonsBuffer);
     owlRayGenSetBuffer(program.rayGen,"photonsCount",program.causticsPhotonsCount);
-    owlRayGenSet1i(program.rayGen,"maxPhotons",program.maxCausticsPhotons);
   } else {
     owlRayGenSetBuffer(program.rayGen,"photons",program.photonsBuffer);
     owlRayGenSetBuffer(program.rayGen,"photonsCount",program.photonsCount);
-    owlRayGenSet1i(program.rayGen,"maxPhotons",program.maxPhotons);
   }
 
   const int initialPhotons = light.power * (causticsMode ? program.causticsPhotonsPerWatt : program.photonsPerWatt);
@@ -93,11 +90,11 @@ void runPointLightRayGen(Program &program, const LightSource &light, bool causti
 }
 
 void initPhotonBuffers(Program &program) {
-  program.photonsBuffer = owlHostPinnedBufferCreate(program.owlContext, OWL_USER_TYPE(Photon), program.maxPhotons);
+  program.photonsBuffer = owlHostPinnedBufferCreate(program.owlContext, OWL_USER_TYPE(Photon), program.castedDiffusePhotons * program.maxDepth);
   program.photonsCount = owlHostPinnedBufferCreate(program.owlContext, OWL_INT, 1);
   owlBufferClear(program.photonsCount);
 
-  program.causticsPhotonsBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_USER_TYPE(Photon),program.maxCausticsPhotons);
+  program.causticsPhotonsBuffer = owlHostPinnedBufferCreate(program.owlContext,OWL_USER_TYPE(Photon),program.castedCausticsPhotons * program.maxDepth);
   program.causticsPhotonsCount = owlHostPinnedBufferCreate(program.owlContext, OWL_INT, 1);
   owlBufferClear(program.causticsPhotonsCount);
 }
@@ -108,8 +105,8 @@ void computePhotonsPerWatt(Program &program) {
     totalWatts += light.power;
   }
 
-  program.photonsPerWatt = program.maxPhotons / totalWatts;
-  program.causticsPhotonsPerWatt = program.maxCausticsPhotons / totalWatts;
+  program.photonsPerWatt = program.castedDiffusePhotons / totalWatts;
+  program.causticsPhotonsPerWatt = program.castedCausticsPhotons / totalWatts;
 }
 
 void runNormal(Program &program, const std::string &output_filename) {
@@ -122,7 +119,6 @@ void runNormal(Program &program, const std::string &output_filename) {
   LOG("done with launch, writing photons ...")
   auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.photonsBuffer, 0));
   auto count = *(int*)owlBufferGetPointer(program.photonsCount, 0);
-  count = std::min(count, program.maxPhotons);
 
   writeAlivePhotons(fb, count, output_filename);
 }
@@ -137,7 +133,6 @@ void runCaustics(Program &program, const std::string &output_filename) {
   LOG("done with launch, writing caustics photons ...")
   auto *fb = static_cast<const Photon*>(owlBufferGetPointer(program.causticsPhotonsBuffer, 0));
   auto count = *(int*)owlBufferGetPointer(program.causticsPhotonsCount, 0);
-  count = std::min(count, program.maxCausticsPhotons);
 
   writeAlivePhotons(fb, count, output_filename);
 }
@@ -158,8 +153,8 @@ int main(int ac, char **av)
   auto photons_filename = cfg["data"]["photons_file"].as_string();
   auto caustics_photons_filename = cfg["data"]["caustics_photons_file"].as_string();
   auto model_path = cfg["data"]["model_path"].as_string();
-  program.maxPhotons = cfg["photon-mapper"]["max_photons"].as_integer();
-  program.maxCausticsPhotons = cfg["photon-mapper"]["max_caustics_photons"].as_integer();
+  program.castedDiffusePhotons = cfg["photon-mapper"]["casted_diffuse_photons"].as_integer();
+  program.castedCausticsPhotons = cfg["photon-mapper"]["casted_caustics_photons"].as_integer();
   program.maxDepth = cfg["photon-mapper"]["max_depth"].as_integer();
 
   auto *ai_importer = new Assimp::Importer;

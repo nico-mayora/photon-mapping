@@ -22,8 +22,8 @@ struct Program {
     OWLBuffer causticsPhotonsCount;
 
     int maxDepth;
-    int maxPhotons;
-    int maxCausticsPhotons;
+    int castedCausticsPhotons;
+    int castedDiffusePhotons;
     int photonsPerWatt;
     int causticsPhotonsPerWatt;
 };
